@@ -53,7 +53,7 @@ class UsuariosController {
     }
   }
 
-  // PUT /users/:id
+  // PUT /users/:id - Editar usuario
   async update(req, res) {
     const { id } = req.params;
     const { nombre, correo } = req.body;
@@ -70,7 +70,7 @@ class UsuariosController {
     }
   }
 
-  // DELETE /users/:id
+  // DELETE /users/:id  - Eliminación lógica (cambio de estatus)
   async delete(req, res) {
     const { id } = req.params;
     try {

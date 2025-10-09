@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post('/login', inicioSesionController.iniciarSesion);
 router.post('/logout', inicioSesionController.cerrarSesion);
+router.post('/registro', inicioSesionController.registerUser);
 router.get('/perfil', validateToken, inicioSesionController.getPerfil);
 router.put('/perfil', validateToken, inicioSesionController.updatePerfil);
 

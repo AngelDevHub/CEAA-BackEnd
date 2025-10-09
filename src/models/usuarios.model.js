@@ -1,7 +1,6 @@
 import { pool } from "../db.js";
 
 class UsuariosModel {
-  // Obtener por correo (para login/registro)
   async findByEmail(correo) {
     const query =
       "SELECT id_usuario, nombre, correo, clave, estatus FROM usuarios WHERE correo = ?";
@@ -58,7 +57,6 @@ class UsuariosModel {
 
   // Actualizar nombre o correo del usuario
   async updateProfile(id_usuario, nombre = null, correo = null) {
-    // Construir la consulta dinámicamente
     let campos = [];
     let valores = [];
 
@@ -70,8 +68,6 @@ class UsuariosModel {
       campos.push('correo = ?');
       valores.push(correo);
     }
-
-    // Si no se enviaron campos, no hacemos nada
     if (campos.length === 0) {
       return 0;
     }
@@ -82,7 +78,7 @@ class UsuariosModel {
     const [result] = await pool.execute(query, valores);
     return result.affectedRows;
   }
-  
+
   // Actualizar solo la contraseña del usuario
   async updatePassword(id_usuario, nuevaClaveHash) {
     const query = 'UPDATE usuarios SET clave = ? WHERE id_usuario = ?';
