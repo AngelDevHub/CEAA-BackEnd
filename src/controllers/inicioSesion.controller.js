@@ -7,10 +7,6 @@ import { createAccessToken, createRefreshToken, verifyRefreshToken } from '../li
 const memoryStore = new Map();
 
 class InicioSesionController {
-    
-    // =========================================================================
-    // MÉTODOS AUXILIARES (CONVERTIDOS A ARROW FUNCTIONS PARA MANTENER EL CONTEXTO 'this')
-    // =========================================================================
 
     // Limpiar entradas expiradas de la memoria
     cleanExpiredEntries = () => {
@@ -78,10 +74,6 @@ class InicioSesionController {
         memoryStore.delete(`blocked_ip:${ip}`);
         memoryStore.delete(`blocked_email:${correo}`);
     }
-
-    // =========================================================================
-    // MÉTODOS DEL CONTROLADOR (EXPUESTOS EN LAS RUTAS)
-    // =========================================================================
 
     // POST /login
     iniciarSesion = async (req, res) => {
