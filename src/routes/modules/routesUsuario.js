@@ -4,11 +4,11 @@ import { validateToken } from '../../middlewares/validateToken.js';
 
 const router = express.Router();
 
-router.get('/usuarios', validateToken, UsuariosController.getAll);
-router.get('/usuario/:id', validateToken, UsuariosController.getById);
-router.post('/usuario', validateToken, UsuariosController.create);
-router.put('/usuario/:id', validateToken, UsuariosController.update);
-router.delete('/usuario/:id', validateToken, UsuariosController.delete);
+// ✅ TODAS estas rutas ahora serán /api/usuarios/...
+router.get('/', validateToken, UsuariosController.getAll);          // GET /api/usuarios
+router.get('/:id', validateToken, UsuariosController.getById);      // GET /api/usuarios/:id
+router.post('/', validateToken, UsuariosController.create);         // POST /api/usuarios
+router.put('/:id', validateToken, UsuariosController.update);       // PUT /api/usuarios/:id
+router.delete('/:id', validateToken, UsuariosController.delete);    // DELETE /api/usuarios/:id
 
-// Export named para que coincida con tu import
-export { router as routesUsuario };
+export default router;

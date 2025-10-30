@@ -1,23 +1,26 @@
-import { TOKEN_SECRET } from '../config.js';
 import jwt from 'jsonwebtoken';
 
-export function createAccessToken(payload) {
-    return new Promise((resolve, reject) => {
-        if (!TOKEN_SECRET) {
-            return reject(new Error("TOKEN_SECRET no está definido. Verifica tu configuración."));
-        }
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
-        jwt.sign(
-            payload,
-            TOKEN_SECRET,
-            { expiresIn: "24h" },
-            (err, token) => {
-                if (err) {
-                    console.error("Error al generar el token:", err);
-                    return reject(err);
-                }
-                resolve(token);
-            }
-        );
+export const createAccessToken = (payload) => {
+    return jwt.sign(payload, JWT_SECRET, {
+        expiresIn: '1h',
+        issuer: 'ceaa-backend'
     });
-}
+};
+
+export const createRefreshToken = (payload) => {
+    return jwt.sign(payload, JWT_REFRESH_SECRET, {
+        expiresIn: '7d',
+        issuer: 'ceaa-backend'
+    });
+};
+
+export const verifyAccessToken = (token) => {
+    return jwt.verify(token, JWT_SECRET);
+};
+
+export const verifyRefreshToken = (token) => {
+    return jwt.verify(token, JWT_REFRESH_SECRET);
+};
