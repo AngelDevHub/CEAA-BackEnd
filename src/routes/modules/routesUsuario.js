@@ -4,11 +4,9 @@ import { validateToken } from '../../middlewares/validateToken.js';
 
 const router = express.Router();
 
-// ✅ TODAS estas rutas ahora serán /api/usuarios/...
-router.get('/', validateToken, UsuariosController.getAll);          // GET /api/usuarios
-router.get('/:id', validateToken, UsuariosController.getById);      // GET /api/usuarios/:id
-router.post('/', validateToken, UsuariosController.create);         // POST /api/usuarios
-router.put('/:id', validateToken, UsuariosController.update);       // PUT /api/usuarios/:id
-router.delete('/:id', validateToken, UsuariosController.delete);    // DELETE /api/usuarios/:id
-
+router.get('/', validateToken, UsuariosController.getAll);          
+router.get('/:id', validateToken, UsuariosController.getById);
+router.post('/', validateToken, UsuariosController.create);
+router.put('/:id', validateToken, UsuariosController.update);
+router.delete('/:id', validateToken, UsuariosController.delete);
 export default router;

@@ -3,7 +3,6 @@ import UsuariosModel from '../models/usuarios.model.js';
 
 class UsuariosController {
 
-  // GET /api/usuarios - Obtener todos los usuarios activos
   async getAll(req, res) {
     try {
       const users = await UsuariosModel.findAll();
@@ -21,11 +20,9 @@ class UsuariosController {
     }
   }
 
-  // GET /api/usuarios/:id - Obtener usuario por ID
   async getById(req, res) {
     const { id } = req.params;
     try {
-      // Validar que el ID sea un número
       if (isNaN(id) || parseInt(id) <= 0) {
         return res.status(400).json({ 
           success: false, 
@@ -54,11 +51,9 @@ class UsuariosController {
     }
   }
 
-  // POST /api/usuarios - Crear un nuevo usuario
   async create(req, res) {
     const { nombre, correo, clave } = req.body;
     try {
-      // Validación de campos requeridos
       if (!nombre || !correo || !clave) {
         return res.status(400).json({ 
           success: false, 
@@ -66,7 +61,6 @@ class UsuariosController {
         });
       }
 
-      // Validar formato de correo
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(correo)) {
         return res.status(400).json({
@@ -75,7 +69,6 @@ class UsuariosController {
         });
       }
 
-      // Validar fortaleza de contraseña
       if (clave.length < 6) {
         return res.status(400).json({
           success: false,
@@ -83,7 +76,6 @@ class UsuariosController {
         });
       }
 
-      // Verificar si el correo ya existe
       const existingUser = await UsuariosModel.findByEmail(correo);
       if (existingUser) {
         return res.status(409).json({ 
@@ -92,11 +84,9 @@ class UsuariosController {
         });
       }
 
-      // Hash de la contraseña
       const salt = await bcrypt.genSalt(12);
       const hashedPassword = await bcrypt.hash(clave, salt);
 
-      // Crear usuario
       const userId = await UsuariosModel.create(nombre, correo, hashedPassword);
       
       res.status(201).json({ 
@@ -118,13 +108,11 @@ class UsuariosController {
     }
   }
 
-  // PUT /api/usuarios/:id - Editar usuario
   async update(req, res) {
     const { id } = req.params;
     const { nombre, correo } = req.body;
 
     try {
-      // Validar que el ID sea un número
       if (isNaN(id) || parseInt(id) <= 0) {
         return res.status(400).json({ 
           success: false, 
@@ -132,7 +120,6 @@ class UsuariosController {
         });
       }
 
-      // Validar que se envíe al menos un campo para actualizar
       if (!nombre && !correo) {
         return res.status(400).json({
           success: false,
@@ -140,7 +127,6 @@ class UsuariosController {
         });
       }
 
-      // Si se está actualizando el correo, verificar que no exista
       if (correo) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(correo)) {
@@ -180,11 +166,9 @@ class UsuariosController {
     }
   }
 
-  // DELETE /api/usuarios/:id - Eliminación lógica
   async delete(req, res) {
     const { id } = req.params;
     try {
-      // Validar que el ID sea un número
       if (isNaN(id) || parseInt(id) <= 0) {
         return res.status(400).json({ 
           success: false, 

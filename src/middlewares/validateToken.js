@@ -1,8 +1,6 @@
 import { verifyAccessToken } from '../libs/jwt.js';
 
-// Middleware para validar Access Token
 export const validateToken = (req, res, next) => {
-  // REGLA 1: Algo que sabes (token)
   const token = req.header('Authorization')?.replace('Bearer ', '') || 
                 req.signedCookies?.accessToken || 
                 req.cookies?.accessToken;
@@ -15,13 +13,11 @@ export const validateToken = (req, res, next) => {
   }
 
   try {
-    // REGLA 2: Verificación criptográfica
+
     const decoded = verifyAccessToken(token);
 
-    // REGLA 3: Información del usuario
     req.user = decoded;
 
-    // Verificar si el token está próximo a expirar
     const now = Math.floor(Date.now() / 1000);
     const timeUntilExpiry = decoded.exp - now;
 
@@ -68,7 +64,6 @@ export const require2FA = (req, res, next) => {
   next();
 };
 
-// Middleware opcional para tokens (no bloquea si no hay token)
 export const optionalToken = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '') || 
                 req.signedCookies?.accessToken || 
@@ -86,7 +81,6 @@ export const optionalToken = (req, res, next) => {
   next();
 };
 
-// Middleware para verificar roles de usuario
 export const requireRole = (roles) => {
   return (req, res, next) => {
     if (!req.user) {

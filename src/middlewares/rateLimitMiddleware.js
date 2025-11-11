@@ -4,8 +4,8 @@ import Redis from 'ioredis';
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 export const loginRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // máximo 5 intentos
+  windowMs: 15 * 60 * 1000, 
+  max: 5, 
   message: {
     success: false,
     message: 'Demasiados intentos de login. Intente nuevamente en 15 minutos.'
@@ -17,17 +17,17 @@ export const loginRateLimiter = rateLimit({
     const emailKey = `failed_attempts_email:${correo}`;
     
     try {
-      // Incrementar contadores
+
       const ipAttempts = await redis.incr(ipKey);
       const emailAttempts = await redis.incr(emailKey);
       
-      // Establecer expiración en primer intento
-      if (ipAttempts === 1) await redis.expire(ipKey, 900); // 15 minutos
+
+      if (ipAttempts === 1) await redis.expire(ipKey, 900);
       if (emailAttempts === 1) await redis.expire(emailKey, 900);
       
-      // Bloquear después de 5 intentos fallidos
+
       if (emailAttempts >= 5) {
-        await redis.setex(`account_lock:${correo}`, 1800, 'locked'); // 30 minutos
+        await redis.setex(`account_lock:${correo}`, 1800, 'locked');
       }
       
       if (ipAttempts >= 5) {
@@ -37,8 +37,6 @@ export const loginRateLimiter = rateLimit({
           unlockTime: '15 minutos'
         });
       }
-      
-      // Continuar con el rate limiting normal
       res.status(429).json({
         success: false,
         message: 'Demasiados intentos de login. Intente nuevamente en 15 minutos.'
@@ -77,8 +75,8 @@ export const checkAccountLock = async (req, res, next) => {
 };
 
 export const generalRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 peticiones generales
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: {
     success: false,
     message: 'Demasiadas peticiones desde esta IP. Intente nuevamente en 15 minutos.'
@@ -88,15 +86,14 @@ export const generalRateLimiter = rateLimit({
 });
 
 export const passwordResetLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hora
-  max: 3, // máximo 3 intentos de reset de contraseña
+  windowMs: 60 * 60 * 1000,
+  max: 3,
   message: {
     success: false,
     message: 'Demasiados intentos de recuperación de contraseña. Intente nuevamente en 1 hora.'
   }
 });
 
-// Función para limpiar intentos fallidos (usar después de login exitoso)
 export const clearFailedAttempts = async (ip, correo) => {
   try {
     await redis.del(`failed_attempts_ip:${ip}`);

@@ -2,7 +2,7 @@ import sanitizeHtml from 'sanitize-html';
 import { body, validationResult } from 'express-validator';
 
 export const sanitizeInput = (req, res, next) => {
-  // Sanitizar body
+
   if (req.body) {
     Object.keys(req.body).forEach(key => {
       if (typeof req.body[key] === 'string') {
@@ -10,15 +10,14 @@ export const sanitizeInput = (req, res, next) => {
           allowedTags: [],
           allowedAttributes: {},
           textFilter: (text) => {
-            // Remover caracteres potencialmente peligrosos adicionales
+
             return text.replace(/[<>\(\)\\\[\]{};]/g, '');
           }
         }).trim();
       }
     });
   }
-  
-  // Sanitizar query params
+
   if (req.query) {
     Object.keys(req.query).forEach(key => {
       if (typeof req.query[key] === 'string') {

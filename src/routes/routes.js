@@ -1,14 +1,20 @@
 import express from 'express';
 import inicioSesion from './modules/routesLogin.js';
-import routesUsuario  from './modules/routesUsuario.js';
+import routesUsuario from './modules/routesUsuario.js';
+import routesInvernadero from './modules/routesSensor.js';
 
 const router = express.Router();
 
-// ✅ RUTAS ORGANIZADAS CON PREFIJOS
-router.use('/auth', inicioSesion);     // Todas las rutas empiezan con /api/auth
-router.use('/usuarios', routesUsuario); // Todas las rutas empiezan con /api/usuarios
+// 🔐 Rutas de autenticación
+router.use('/auth', inicioSesion);
 
-// Ruta de prueba
+// 👤 Rutas de usuarios
+router.use('/usuarios', routesUsuario);
+
+// 🌱 Rutas del invernadero (Firebase Realtime Database)
+router.use('/invernadero', routesInvernadero);
+
+// 🧪 Ruta de prueba
 router.get('/test', (req, res) => {
     res.json({ 
         success: true, 

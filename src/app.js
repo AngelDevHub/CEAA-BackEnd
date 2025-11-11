@@ -8,10 +8,9 @@ import { sanitizeInput } from './middlewares/sanitizeMiddleware.js';
 
 const app = express();
 
-// Configuración de rate limiting global
 const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100, // máximo 100 peticiones por IP cada 15 minutos
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     message: {
         success: false,
         message: 'Demasiadas peticiones desde esta IP, intente nuevamente en 15 minutos.'
@@ -20,20 +19,18 @@ const globalLimiter = rateLimit({
     legacyHeaders: false
 });
 
-// Rate limiting más estricto para login
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 5, // máximo 5 intentos de login
+    windowMs: 15 * 60 * 1000,
+    max: 5,
     message: {
         success: false,
         message: 'Demasiados intentos de login, intente nuevamente en 15 minutos.'
     },
-    skipSuccessfulRequests: true // No contar las peticiones exitosas
+    skipSuccessfulRequests: true 
 });
 
 app.use(globalLimiter);
 
-// Configuración de Helmet más específica
 app.use(
     helmet({
         contentSecurityPolicy: {
@@ -49,7 +46,6 @@ app.use(
     })
 );
 
-// Parseo seguro de JSON con límite
 app.use(express.json({
     limit: '10mb',
     verify: (req, res, buf) => {
@@ -70,13 +66,11 @@ app.use(express.urlencoded({
     limit: '10mb' 
 }));
 
-// Orígenes permitidos
 const allowedOrigins = [
     "http://localhost:5173",
     "https://vital-air.vercel.app"
 ];
 
-// Configuración CORS mejorada
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin) return callback(null, true);
@@ -99,13 +93,10 @@ app.use(cors({
     maxAge: 86400
 }));
 
-// Middleware de sanitización global
 app.use(sanitizeInput);
 
-// Cookie parser con firma
 app.use(cookieParser(process.env.COOKIE_SECRET || 'fallback-secret'));
 
-// Middleware de seguridad adicional
 app.use((req, res, next) => {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -118,7 +109,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// ✅ HEALTH CHECK PRIMERO (para monitoreo sin afectar rate limiting)
 app.get('/health', (req, res) => {
     res.status(200).json({
         success: true,
@@ -127,14 +117,11 @@ app.get('/health', (req, res) => {
     });
 });
 
-// ✅ RATE LIMITING ESPECÍFICO (después de health check)
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/registro', authLimiter);
 
-// Rutas principales
 app.use("/api", routes);
 
-// Manejo de errores CORS
 app.use((err, req, res, next) => {
     if (err.message === 'No permitido por CORS') {
         return res.status(403).json({
@@ -145,7 +132,6 @@ app.use((err, req, res, next) => {
     next(err);
 });
 
-// Manejo de rutas no encontradas
 app.use((req, res) => {
     res.status(404).json({
         success: false,
@@ -153,7 +139,6 @@ app.use((req, res) => {
     });
 });
 
-// Manejo de errores global
 app.use((err, req, res, next) => {
     console.error('Error global:', err);
     

@@ -3,7 +3,6 @@ class RedisMock {
     constructor() {
         this.data = new Map();
         this.expirations = new Map();
-        console.log('🔄 Usando Redis Mock (modo desarrollo)');
     }
 
     async get(key) {

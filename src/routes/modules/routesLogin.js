@@ -5,7 +5,6 @@ import { validateLogin } from '../../middlewares/sanitizeMiddleware.js';
 
 const router = express.Router();
 
-// ✅ TODAS estas rutas ahora serán /api/auth/...
 router.post('/login', validateLogin, inicioSesionController.iniciarSesion);
 router.post('/logout',validateToken, inicioSesionController.cerrarSesion);
 router.post('/registro', inicioSesionController.registerUser);
