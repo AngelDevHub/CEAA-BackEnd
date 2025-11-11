@@ -14,18 +14,15 @@ export function crearModelo() {
     loss: "meanSquaredError",
   });
 
-  console.log("🧠 Modelo creado correctamente");
   return modelo;
 }
 
 export async function entrenarModelo(modelo, datosEntrenamiento) {
   if (isTraining) {
-    console.log("⏳ Entrenamiento en curso... se omite esta iteración");
     return modelo;
   }
 
   if (!Array.isArray(datosEntrenamiento) || datosEntrenamiento.length < 5) {
-    console.log("⚠️ No hay suficientes datos para entrenar el modelo");
     return modelo;
   }
 
@@ -51,10 +48,7 @@ export async function entrenarModelo(modelo, datosEntrenamiento) {
 
     xs.dispose();
     ys.dispose();
-
-    console.log("Modelo entrenado con", datosEntrenamiento.length, "registros");
   } catch (error) {
-    console.error("Error durante el entrenamiento:", error);
   } finally {
     isTraining = false;
   }
@@ -95,7 +89,6 @@ export async function generarPredicciones(modelo, ultimoDato) {
     });
   }
 
-  console.log("🔮 Predicciones generadas:", predicciones);
   return predicciones;
 }
 

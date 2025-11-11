@@ -43,8 +43,7 @@ function calcularIndiceCrecimiento(temperatura, humedad, nitrogeno) {
 // 🧩 Función principal para procesar datos de sensores
 async function procesarDato(data) {
   try {
-    console.log(chalk.magenta("📡 Dato recibido:"), data);
-
+    
     historial.push(data);
     if (historial.length > 30) historial.shift();
 
@@ -75,7 +74,7 @@ async function procesarDato(data) {
     });
 
   } catch (error) {
-    console.error(chalk.red("❌ Error procesando dato:"), error);
+    
   }
 }
 
