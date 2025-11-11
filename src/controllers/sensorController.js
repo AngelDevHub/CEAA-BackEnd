@@ -11,7 +11,6 @@ export const SensorController = {
         data,
       });
     } catch (error) {
-      console.error("Error al obtener datos:", error);
       res.status(500).json({
         success: false,
         message: "Error al obtener datos",
@@ -38,7 +37,6 @@ export const SensorController = {
         id,
       });
     } catch (error) {
-      console.error("Error al agregar sensor:", error);
       res.status(500).json({
         success: false,
         message: "Error al agregar sensor",

@@ -6,7 +6,10 @@ import helmet from "helmet";
 import rateLimit from 'express-rate-limit';
 import { sanitizeInput } from './middlewares/sanitizeMiddleware.js';
 
+
 const app = express();
+
+app.set('trust proxy', true);
 
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -77,7 +80,6 @@ app.use(cors({
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            console.warn(`CORS bloqueado para origen: ${origin}`);
             callback(new Error("No permitido por CORS"));
         }
     },

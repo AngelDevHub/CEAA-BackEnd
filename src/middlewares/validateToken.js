@@ -27,7 +27,6 @@ export const validateToken = (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Error validando token:', error.message);
 
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ 
@@ -74,7 +73,7 @@ export const optionalToken = (req, res, next) => {
       const decoded = verifyAccessToken(token);
       req.user = decoded;
     } catch (error) {
-      console.log('Token opcional inválido:', error.message);
+      
     }
   }
 
