@@ -75,25 +75,17 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error("No permitido por CORS"));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-        'Content-Type', 
-        'Authorization', 
-        'X-Requested-With',
-        'Accept'
-    ],
-    maxAge: 86400
+    origin: allowedOrigins,
+    credentials: true
 }));
+
+app.options('*', cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization','X-Requested-With','Accept']
+}));
+
 
 app.use(sanitizeInput);
 
