@@ -14,102 +14,83 @@ import {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173",
-            "https://ceaa-front-end.vercel.app"],
+    origin: [
+      "http://localhost:5173",
+      "https://ceaa-front-end.vercel.app"
+    ],
     methods: ["GET", "POST"],
     credentials: true,
   },
+  transports: ["polling", "websocket"], // 🔹 polling fallback para producción
 });
 
 let modelo = crearModelo();
 let historial = [];
 const sensoresRef = db.ref("sensores");
 
-// 🌱 Función para calcular el índice de crecimiento de rábanos
+// 🌱 Calcular índice de crecimiento
 function calcularIndiceCrecimiento(temperatura, humedad, nitrogeno) {
-  // Fórmula base simple — puedes ajustarla con tus datos reales
-  const pesoTemp = 0.4;
-  const pesoHum = 0.3;
-  const pesoNit = 0.3;
-
-  // Escalamos los valores para que el índice esté entre 0 y 1
+  const pesoTemp = 0.4, pesoHum = 0.3, pesoNit = 0.3;
   const tempNorm = Math.min(temperatura / 30, 1);
   const humNorm = Math.min(humedad / 100, 1);
   const nitNorm = Math.min(nitrogeno / 10, 1);
-
-  const indice = pesoTemp * tempNorm + pesoHum * humNorm + pesoNit * nitNorm;
-  return parseFloat((indice * 100).toFixed(2)); // porcentaje de crecimiento
+  return parseFloat(((pesoTemp * tempNorm + pesoHum * humNorm + pesoNit * nitNorm) * 100).toFixed(2));
 }
 
-// 🧩 Función principal para procesar datos de sensores
+// 🧩 Procesar datos y emitir
 async function procesarDato(data) {
   try {
-    
     historial.push(data);
     if (historial.length > 30) historial.shift();
 
-    // Entrenar modelo con historial reciente
     modelo = await entrenarModelo(modelo, historial);
-
-    // Generar predicciones futuras
     const predicciones = await generarPredicciones(modelo, data);
 
-    // Calcular índice de crecimiento del cultivo
     const indiceCrecimiento = calcularIndiceCrecimiento(
       data.temperatura,
       data.humedad,
       data.nitrogeno
     );
 
-    // Crear objeto completo
-    const resultado = {
-      ...data,
-      indiceCrecimiento,
-      fecha: new Date().toISOString(),
-    };
-
-    // Emitir datos al front
-    io.emit("nuevosDatos", {
-      actual: resultado,
-      predicciones,
-    });
-
+    const resultado = { ...data, indiceCrecimiento, fecha: new Date().toISOString() };
+    io.emit("nuevosDatos", { actual: resultado, predicciones });
   } catch (error) {
-    
+    console.error("Error procesando datos del sensor:", error);
   }
 }
 
 // 🔥 Eventos Firebase
-sensoresRef.on("child_added", async (snapshot) => {
-  const data = snapshot.val();
-  await procesarDato(data);
-});
-
-sensoresRef.on("child_changed", async (snapshot) => {
-  const data = snapshot.val();
-  await procesarDato(data);
-});
+["child_added", "child_changed"].forEach(event =>
+  sensoresRef.on(event, async snapshot => {
+    const data = snapshot.val();
+    await procesarDato(data);
+  })
+);
 
 // 💬 Socket.io
-io.on("connection", (socket) => {
+io.on("connection", socket => {
   console.log(chalk.green(`Cliente conectado: ${socket.id}`));
 
-  socket.on("disconnect", () => {
-    console.log(chalk.red(`Cliente desconectado: ${socket.id}`));
+  socket.on("disconnect", reason => {
+    console.log(chalk.red(`Cliente desconectado: ${socket.id}, razón: ${reason}`));
+  });
+
+  socket.on("error", err => {
+    console.error(chalk.red(`Error en socket ${socket.id}:`), err);
   });
 });
 
 // 🚀 Iniciar servidor
 server.listen(PORT, () => {
   console.log(chalk.blueBright("==========================================="));
-  console.log(chalk.greenBright("🚀  Server is running!"));
-  console.log(chalk.yellowBright(`📌  Listening on port: ${PORT}`));
+  console.log(chalk.greenBright("🚀 Server is running!"));
+  console.log(chalk.yellowBright(`📌 Listening on port: ${PORT}`));
   
   if (process.env.NODE_ENV === "development") {
-    console.log(chalk.cyanBright(`🌐  http://localhost:${PORT}`));
+    console.log(chalk.cyanBright(`🌐 http://localhost:${PORT}`));
   } else {
-    console.log(chalk.cyanBright(`🌐  Server deployed! Use Railway URL for connections`));
+    console.log(chalk.cyanBright("🌐 Server deployed! Use Railway URL for connections"));
   }
-  
+
   console.log(chalk.blueBright("==========================================="));
 });
