@@ -104,6 +104,12 @@ server.listen(PORT, () => {
   console.log(chalk.blueBright("==========================================="));
   console.log(chalk.greenBright("🚀  Server is running!"));
   console.log(chalk.yellowBright(`📌  Listening on port: ${PORT}`));
-  console.log(chalk.cyanBright(`🌐  http://localhost:${PORT}`));
+  
+  if (process.env.NODE_ENV === "development") {
+    console.log(chalk.cyanBright(`🌐  http://localhost:${PORT}`));
+  } else {
+    console.log(chalk.cyanBright(`🌐  Server deployed! Use Railway URL for connections`));
+  }
+  
   console.log(chalk.blueBright("==========================================="));
 });
