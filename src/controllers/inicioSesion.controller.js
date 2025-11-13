@@ -71,13 +71,7 @@ class InicioSesionController {
             const sessionKey = `session:${usuario.id_usuario}:${Date.now()}`;
             await redisClient.setEx(sessionKey, 7 * 24 * 3600, JSON.stringify({ ip: req.ip, userAgent: req.get('User-Agent'), timestamp: new Date().toISOString() }));
 
-            const cookieOptions = { 
-                httpOnly: true, 
-                secure: process.env.NODE_ENV === 'production', 
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
-                signed: true 
-            };
-
+            const cookieOptions = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', signed: true };
             res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
             res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 3600 * 1000 });
 
@@ -168,15 +162,13 @@ class InicioSesionController {
 
             const newAccessToken = createAccessToken(tokenPayload);
 
-            const cookieOptions = { 
-                httpOnly: true, 
-                secure: process.env.NODE_ENV === 'production', 
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
-                signed: true 
-            };
-
-            res.cookie('accessToken', newAccessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
-
+            res.cookie('accessToken', newAccessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                signed: true,
+                maxAge: 15 * 60 * 1000 
+            });
 
             return res.status(200).json({
                 success: true,
@@ -209,11 +201,11 @@ class InicioSesionController {
                 await redisClient.del(...keys);
             }
 
-            const cookieOptions = { 
+            const cookieOptions = {
                 httpOnly: true,
-                signed: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+                sameSite: 'strict',
+                signed: true
             };
 
             res.clearCookie('accessToken', cookieOptions);
