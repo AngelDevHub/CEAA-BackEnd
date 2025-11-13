@@ -13,10 +13,10 @@ export const NODE_ENV= process.env.NODE_ENV || 'development'
 export const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_access'
 export const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev_secret_refresh'
 export const COOKIE_SECRET = process.env.COOKIE_SECRET || 'dev_cookie_secret'
-export const REDIS_HOST = process.env.REDIS_HOST || 'localhost'
-export const REDIS_PORT = process.env.REDIS_PORT || 6379
 
 export const FIREBASE_PROJECT_ID  = process.env.FIREBASE_PROJECT_ID;
 export const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
 export const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY;
 export const FIREBASE_DB_URL      = process.env.FIREBASE_DB_URL;
+
+export const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';

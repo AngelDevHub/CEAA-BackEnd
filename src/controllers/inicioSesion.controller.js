@@ -1,178 +1,84 @@
 import bcrypt from 'bcryptjs';
 import UsuariosModel from '../models/usuarios.model.js';
 import { createAccessToken, createRefreshToken, verifyRefreshToken } from '../libs/jwt.js';
-
-// NOTA: Usar 'Map' en memoria NO es seguro para producción o entornos con múltiples 
-// procesos. Se usa aquí solo para demostrar la lógica del controlador.
-const memoryStore = new Map();
+import redisClient from '../libs/redis.js';
 
 class InicioSesionController {
 
-    cleanExpiredEntries = () => {
-        const now = Date.now();
-        for (const [key, value] of memoryStore.entries()) {
-            if (value.expires <= now) {
-                memoryStore.delete(key);
-            }
+    incrementCounter = async (key, ttlMs) => {
+        const value = await redisClient.incr(key);
+        if (value === 1) {
+            await redisClient.pexpire(key, ttlMs);
         }
-    }
-
-    incrementCounter = (key, ttlMs) => {
-        this.cleanExpiredEntries();
-        
-        const now = Date.now();
-        const item = memoryStore.get(key);
-        
-        if (!item || item.expires <= now) {
-            memoryStore.set(key, {
-                value: 1,
-                expires: now + ttlMs
-            });
-            return 1;
-        } else {
-            const newValue = item.value + 1;
-            memoryStore.set(key, {
-                value: newValue,
-                expires: item.expires
-            });
-            return newValue;
-        }
+        return value;
     }
 
     registrarIntentoFallido = async (ip, correo) => {
         const ipAttemptsKey = `attempts_ip:${ip}`;
         const emailAttemptsKey = `attempts_email:${correo}`;
 
-        const ipAttempts = this.incrementCounter(ipAttemptsKey, 900000);
-        const emailAttempts = this.incrementCounter(emailAttemptsKey, 900000);
+        const ipAttempts = await this.incrementCounter(ipAttemptsKey, 900_000);      // 15 min
+        const emailAttempts = await this.incrementCounter(emailAttemptsKey, 900_000); // 15 min
 
         if (ipAttempts >= 5) {
-            memoryStore.set(`blocked_ip:${ip}`, {
-                value: 'blocked',
-                expires: Date.now() + 900000
-            });
+            await redisClient.setEx(`blocked_ip:${ip}`, 900, 'blocked'); // 15 min
         }
         if (emailAttempts >= 5) {
-            memoryStore.set(`blocked_email:${correo}`, {
-                value: 'blocked',
-                expires: Date.now() + 1800000
-            });
+            await redisClient.setEx(`blocked_email:${correo}`, 1800, 'blocked'); // 30 min
         }
     }
 
     limpiarIntentosFallidos = async (ip, correo) => {
-        memoryStore.delete(`attempts_ip:${ip}`);
-        memoryStore.delete(`attempts_email:${correo}`);
-        memoryStore.delete(`blocked_ip:${ip}`);
-        memoryStore.delete(`blocked_email:${correo}`);
+        await redisClient.del(`attempts_ip:${ip}`);
+        await redisClient.del(`attempts_email:${correo}`);
+        await redisClient.del(`blocked_ip:${ip}`);
+        await redisClient.del(`blocked_email:${correo}`);
     }
 
     iniciarSesion = async (req, res) => {
         const { correo, clave } = req.body;
 
         try {
-            if (!correo || !clave) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'Faltan credenciales (correo y clave).' 
-                });
-            }
+            if (!correo || !clave) return res.status(400).json({ success: false, message: 'Faltan credenciales.' });
 
-            const ipKey = `blocked_ip:${req.ip}`;
-            const isIpBlocked = memoryStore.get(ipKey);
-            if (isIpBlocked && isIpBlocked.expires > Date.now()) {
-                return res.status(429).json({
-                    success: false,
-                    message: 'Demasiados intentos. Intente nuevamente en 15 minutos.'
-                });
-            }
+            const isIpBlocked = await redisClient.get(`blocked_ip:${req.ip}`);
+            if (isIpBlocked) return res.status(429).json({ success: false, message: 'Demasiados intentos. Intente más tarde.' });
 
-            const emailKey = `blocked_email:${correo}`;
-            const isEmailBlocked = memoryStore.get(emailKey);
-            if (isEmailBlocked && isEmailBlocked.expires > Date.now()) {
-                return res.status(429).json({
-                    success: false,
-                    message: 'Cuenta temporalmente bloqueada por seguridad.'
-                });
-            }
+            const isEmailBlocked = await redisClient.get(`blocked_email:${correo}`);
+            if (isEmailBlocked) return res.status(429).json({ success: false, message: 'Cuenta temporalmente bloqueada.' });
 
             const usuario = await UsuariosModel.findByEmail(correo);
-            console.log("Usuario encontrado:", usuario);
-
             if (!usuario) {
                 await this.registrarIntentoFallido(req.ip, correo);
-                return res.status(401).json({ 
-                    success: false, 
-                    message: 'Credenciales inválidas.' 
-                });
+                return res.status(401).json({ success: false, message: 'Credenciales inválidas.' });
             }
 
             const isMatch = await bcrypt.compare(clave, usuario.clave);
-            console.log("Contraseña coincide:", isMatch);
-
             if (!isMatch) {
                 await this.registrarIntentoFallido(req.ip, correo);
-                return res.status(401).json({ 
-                    success: false, 
-                    message: 'Credenciales inválidas.' 
-                });
+                return res.status(401).json({ success: false, message: 'Credenciales inválidas.' });
             }
 
             await this.limpiarIntentosFallidos(req.ip, correo);
 
-            const tokenPayload = {
-                id_usuario: usuario.id_usuario,
-                role: usuario.role,
-                nombre: usuario.nombre,
-                correo: usuario.correo
-            };
-
+            const tokenPayload = { id_usuario: usuario.id_usuario, role: usuario.role, nombre: usuario.nombre, correo: usuario.correo };
             const accessToken = createAccessToken(tokenPayload);
             const refreshToken = createRefreshToken(tokenPayload);
 
             await UsuariosModel.updateRefreshToken(usuario.id_usuario, refreshToken);
-            console.log("Refresh token actualizado");
+
+            // Guardar sesión en Redis
             const sessionKey = `session:${usuario.id_usuario}:${Date.now()}`;
-            memoryStore.set(sessionKey, {
-                value: JSON.stringify({
-                    ip: req.ip,
-                    userAgent: req.get('User-Agent'),
-                    timestamp: new Date().toISOString()
-                }),
-                expires: Date.now() + (7 * 24 * 3600000)
-            });
-            const cookieOptions = {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                signed: true
-            };
+            await redisClient.setEx(sessionKey, 7 * 24 * 3600, JSON.stringify({ ip: req.ip, userAgent: req.get('User-Agent'), timestamp: new Date().toISOString() }));
 
+            const cookieOptions = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', signed: true };
             res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
+            res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 3600 * 1000 });
 
-            res.cookie('refreshToken', refreshToken, { 
-                ...cookieOptions, 
-                maxAge: 7 * 24 * 3600000 
-            });
-
-            return res.status(200).json({ 
-                success: true, 
-                message: 'Inicio de sesión exitoso.',
-                data: {
-                    accessToken: accessToken, 
-                    expiresIn: 15 * 60,
-                    id: usuario.id_usuario,
-                    nombre: usuario.nombre,
-                    correo: usuario.correo
-                }
-            });
-
+            return res.status(200).json({ success: true, message: 'Inicio de sesión exitoso.', data: { accessToken, expiresIn: 15 * 60, id: usuario.id_usuario, nombre: usuario.nombre, correo: usuario.correo } });
         } catch (err) {
-            console.error('Error en el inicio de sesión:', err);
-            return res.status(500).json({ 
-                success: false, 
-                message: 'Error interno del servidor al iniciar sesión.' 
-            });
+            console.error('Error en iniciar sesión:', err);
+            return res.status(500).json({ success: false, message: 'Error interno del servidor.' });
         }
     }
 
@@ -286,16 +192,13 @@ class InicioSesionController {
 
     cerrarSesion = async (req, res) => {
         try {
-
             const userId = req.user.id_usuario; 
-
             await UsuariosModel.updateRefreshToken(userId, null);
 
-            const sessionPattern = `session:${userId}:`;
-            for (const [key, value] of memoryStore.entries()) {
-                if (key.startsWith(sessionPattern)) {
-                    memoryStore.delete(key);
-                }
+            // Eliminar sesiones en Redis por patrón
+            const keys = await redisClient.keys(`session:${userId}:*`);
+            if (keys.length) {
+                await redisClient.del(...keys);
             }
 
             const cookieOptions = {
@@ -307,18 +210,11 @@ class InicioSesionController {
 
             res.clearCookie('accessToken', cookieOptions);
             res.clearCookie('refreshToken', cookieOptions);
-            
-            return res.status(200).json({ 
-                success: true, 
-                message: 'Sesión cerrada exitosamente.' 
-            });
 
+            return res.status(200).json({ success: true, message: 'Sesión cerrada exitosamente.' });
         } catch (err) {
             console.error('Error al cerrar la sesión:', err);
-            return res.status(500).json({ 
-                success: false, 
-                message: 'Error interno del servidor al cerrar la sesión.' 
-            });
+            return res.status(500).json({ success: false, message: 'Error interno del servidor al cerrar la sesión.' });
         }
     }
 
@@ -368,6 +264,7 @@ class InicioSesionController {
                 });
             }
 
+            // Actualizar nombre o correo
             if (nombre || correo) {
                 if (correo && userCurrent.correo !== correo) {
                     const existingUser = await UsuariosModel.findByEmail(correo);
@@ -378,6 +275,7 @@ class InicioSesionController {
                 await UsuariosModel.updateProfile(id_usuario, nombre, correo);
             }
 
+            // Cambiar contraseña
             if (nueva_clave) {
                 if (!clave_actual) {
                     return res.status(400).json({ message: 'Debes enviar tu contraseña actual para cambiarla.' });
@@ -395,12 +293,13 @@ class InicioSesionController {
                 const nuevaClaveHash = await bcrypt.hash(nueva_clave, 12);
                 await UsuariosModel.updatePassword(id_usuario, nuevaClaveHash);
 
-                const sessionPattern = `session:${id_usuario}:`;
-                for (const [key, value] of memoryStore.entries()) {
-                    if (key.startsWith(sessionPattern)) {
-                        memoryStore.delete(key);
-                    }
+                // Eliminar todas las sesiones del usuario en Redis
+                const sessionKeys = await redisClient.keys(`session:${id_usuario}:*`);
+                if (sessionKeys.length) {
+                    await redisClient.del(...sessionKeys);
                 }
+
+                // Limpiar refresh token
                 await UsuariosModel.updateRefreshToken(id_usuario, null); 
             }
 
@@ -417,6 +316,7 @@ class InicioSesionController {
             });
         }
     }
+
 }
 
 
