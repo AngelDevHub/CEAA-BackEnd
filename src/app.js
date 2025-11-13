@@ -9,7 +9,7 @@ import { sanitizeInput } from './middlewares/sanitizeMiddleware.js';
 
 const app = express();
 
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -29,7 +29,7 @@ const authLimiter = rateLimit({
         success: false,
         message: 'Demasiados intentos de login, intente nuevamente en 15 minutos.'
     },
-    skipSuccessfulRequests: true 
+    skipSuccessfulRequests: true
 });
 
 app.use(globalLimiter);
