@@ -10,6 +10,6 @@ router.post('/logout',validateToken, inicioSesionController.cerrarSesion);
 router.post('/registro', inicioSesionController.registerUser);
 router.get('/perfil', validateToken, inicioSesionController.getPerfil);
 router.put('/perfil', validateToken, inicioSesionController.updatePerfil);
-router.post('/refresh-token', inicioSesionController.refrescarToken);
+router.get('/refresh-token', inicioSesionController.refrescarToken);
 
 export default router;
