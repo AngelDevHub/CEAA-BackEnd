@@ -97,6 +97,7 @@ class InicioSesionController {
             }
 
             const usuario = await UsuariosModel.findByEmail(correo);
+            console.log("Usuario encontrado:", usuario);
 
             if (!usuario) {
                 await this.registrarIntentoFallido(req.ip, correo);
@@ -107,6 +108,7 @@ class InicioSesionController {
             }
 
             const isMatch = await bcrypt.compare(clave, usuario.clave);
+            console.log("Contraseña coincide:", isMatch);
 
             if (!isMatch) {
                 await this.registrarIntentoFallido(req.ip, correo);
@@ -129,7 +131,7 @@ class InicioSesionController {
             const refreshToken = createRefreshToken(tokenPayload);
 
             await UsuariosModel.updateRefreshToken(usuario.id_usuario, refreshToken);
-
+            console.log("Refresh token actualizado");
             const sessionKey = `session:${usuario.id_usuario}:${Date.now()}`;
             memoryStore.set(sessionKey, {
                 value: JSON.stringify({
