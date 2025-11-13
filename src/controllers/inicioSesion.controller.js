@@ -137,21 +137,30 @@ class InicioSesionController {
 
     refrescarToken = async (req, res) => {
         try {
+            console.log('🔹 Intento de refrescar token');
+            console.log('Cookies recibidas:', req.cookies);
+            console.log('Cookies firmadas recibidas:', req.signedCookies);
+
             const refreshTokenCookie = req.signedCookies.refreshToken;
-            
+
             if (!refreshTokenCookie) {
+                console.warn('⚠️ No se recibió cookie de refresh token o no está firmada');
                 return res.status(401).json({
                     success: false,
                     message: 'Token de refresco requerido (o cookie no firmada).'
                 });
             }
 
-            const decoded = verifyRefreshToken(refreshTokenCookie);
-            const userId = decoded.id_usuario;
+            console.log('Refresh token recibido:', refreshTokenCookie);
 
+            const decoded = verifyRefreshToken(refreshTokenCookie);
+            console.log('Refresh token decodificado:', decoded);
+
+            const userId = decoded.id_usuario;
             const usuario = await UsuariosModel.findByRefreshToken(userId, refreshTokenCookie);
-            
+
             if (!usuario) {
+                console.warn('⚠️ No se encontró usuario con ese refresh token');
                 res.clearCookie('accessToken');
                 res.clearCookie('refreshToken');
                 return res.status(401).json({
@@ -159,6 +168,8 @@ class InicioSesionController {
                     message: 'Sesión inválida. Vuelva a iniciar sesión.'
                 });
             }
+
+            console.log('Usuario encontrado para refresco de token:', usuario.correo);
 
             const tokenPayload = {
                 id_usuario: usuario.id_usuario,
@@ -168,6 +179,7 @@ class InicioSesionController {
             };
 
             const newAccessToken = createAccessToken(tokenPayload);
+            console.log('Nuevo access token generado');
 
             res.cookie('accessToken', newAccessToken, {
                 httpOnly: true,
@@ -176,6 +188,8 @@ class InicioSesionController {
                 signed: true,
                 maxAge: 15 * 60 * 1000 
             });
+
+            console.log('Cookie de accessToken enviada al cliente');
 
             return res.status(200).json({
                 success: true,
@@ -187,7 +201,7 @@ class InicioSesionController {
             });
 
         } catch (error) {
-            console.error('Error refrescando token:', error);
+            console.error('❌ Error refrescando token:', error);
             res.clearCookie('accessToken');
             res.clearCookie('refreshToken');
             return res.status(401).json({
