@@ -19,4 +19,4 @@ export const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
 export const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY;
 export const FIREBASE_DB_URL      = process.env.FIREBASE_DB_URL;
 
-export const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+export const REDIS_URL = process.env.REDIS_URL;
