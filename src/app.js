@@ -2,17 +2,18 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import routes from './routes/routes.js';
-import helmet from "helmet";
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { sanitizeInput } from './middlewares/sanitizeMiddleware.js';
 
-
 const app = express();
-
 app.set('trust proxy', 1);
 
+// -----------------------------
+// 🔹 Rate Limiters
+// -----------------------------
 const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 15 * 60 * 1000, // 15 minutos
     max: 100,
     message: {
         success: false,
@@ -34,21 +35,25 @@ const authLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-app.use(
-    helmet({
-        contentSecurityPolicy: {
-            directives: {
-                defaultSrc: ["'self'"],
-                styleSrc: ["'self'", "'unsafe-inline'"],
-                scriptSrc: ["'self'"],
-                imgSrc: ["'self'", "data:", "https:"],
-            },
-        },
-        crossOriginEmbedderPolicy: false,
-        referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-    })
-);
+// -----------------------------
+// 🔹 Seguridad con Helmet
+// -----------------------------
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:"]
+        }
+    },
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" }
+}));
 
+// -----------------------------
+// 🔹 Body parser
+// -----------------------------
 app.use(express.json({
     limit: '10mb',
     verify: (req, res, buf) => {
@@ -64,45 +69,61 @@ app.use(express.json({
     }
 }));
 
-app.use(express.urlencoded({ 
-    extended: true, 
-    limit: '10mb' 
+app.use(express.urlencoded({
+    extended: true,
+    limit: '10mb'
 }));
 
+// -----------------------------
+// 🔹 CORS configurado correctamente
+// -----------------------------
 const allowedOrigins = [
-    "http://localhost:5173",                  
-    "https://ceaa-front-end.vercel.app"      
+    "http://localhost:5173",
+    "https://ceaa-front-end.vercel.app"
 ];
 
 app.use(cors({
-    origin: allowedOrigins,
-    credentials: true
-}));
-
-app.use(cors({
-    origin: allowedOrigins,
+    origin: function(origin, callback) {
+        if (!origin) return callback(null, true); // para Postman o herramientas sin origin
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("No permitido por CORS"));
+        }
+    },
     credentials: true,
     methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
     allowedHeaders: ['Content-Type','Authorization','X-Requested-With','Accept']
 }));
 
-
+// -----------------------------
+// 🔹 Sanitización de inputs
+// -----------------------------
 app.use(sanitizeInput);
 
+// -----------------------------
+// 🔹 Cookies
+// -----------------------------
 app.use(cookieParser(process.env.COOKIE_SECRET || 'fallback-secret'));
 
+// -----------------------------
+// 🔹 Cabeceras de seguridad adicionales
+// -----------------------------
 app.use((req, res, next) => {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    
+
     if (process.env.NODE_ENV === 'production') {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     }
-    
+
     res.removeHeader('X-Powered-By');
     next();
 });
 
+// -----------------------------
+// 🔹 Health check
+// -----------------------------
 app.get('/health', (req, res) => {
     res.status(200).json({
         success: true,
@@ -111,11 +132,20 @@ app.get('/health', (req, res) => {
     });
 });
 
+// -----------------------------
+// 🔹 Rate limiters específicos
+// -----------------------------
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/registro', authLimiter);
 
+// -----------------------------
+// 🔹 Rutas principales
+// -----------------------------
 app.use("/api", routes);
 
+// -----------------------------
+// 🔹 Manejo de errores
+// -----------------------------
 app.use((err, req, res, next) => {
     if (err.message === 'No permitido por CORS') {
         return res.status(403).json({
@@ -135,7 +165,7 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
     console.error('Error global:', err);
-    
+
     res.status(500).json({
         success: false,
         message: 'Error interno del servidor'
