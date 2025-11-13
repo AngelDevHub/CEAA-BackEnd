@@ -18,7 +18,7 @@ const allowedOrigins = [
 ];
 
 // 🔥 CORS CONFIGURACIÓN CRÍTICA - ACTUALIZADA
-app.use(cors({
+const corsOptions = {
     origin: function (origin, callback) {
         // Permitir requests sin origin (como mobile apps, Postman, o server-to-server)
         if (!origin) return callback(null, true);
@@ -38,16 +38,15 @@ app.use(cors({
         'X-Requested-With', 
         'Accept',
         'X-CSRF-Token',
-        'Cookie',
-        'Set-Cookie'
+        'Cookie'
     ],
     exposedHeaders: [
-        'Set-Cookie',
-        'Cookie',
         'Authorization'
     ],
     maxAge: 86400 // Preflight cache por 24 horas
-}));
+};
+
+app.use(cors(corsOptions));
 
 // -----------------------------
 // 🔹 Cookie parser - DEBE ir después de CORS
@@ -142,11 +141,11 @@ if (process.env.NODE_ENV !== 'production') {
 // 🔹 Cabeceras de seguridad adicionales
 // -----------------------------
 app.use((req, res, next) => {
+    // No establecer Access-Control-Allow-Origin manualmente aquí
+    // CORS middleware ya se encarga de esto
+    
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    
-    // Cabeceras críticas para cookies cross-domain
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
     
     if (process.env.NODE_ENV === 'production') {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
@@ -169,13 +168,11 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Health check específico para CORS
-app.options('/health', cors()); // Preflight para health check
-
 // -----------------------------
-// 🔹 Preflight handler global
+// 🔹 Preflight handler global - CORREGIDO ✅
 // -----------------------------
-app.options('*', cors()); // Manejar todas las preflight requests
+// Esta es la línea que estaba causando el error - SOLUCIÓN:
+app.options('*', cors(corsOptions)); // ✅ Pasar las mismas opciones CORS
 
 // -----------------------------
 // 🔹 Rate limiters específicos
@@ -218,7 +215,7 @@ app.use((err, req, res, next) => {
     next(err);
 });
 
-// 404 handler
+// 404 handler - CORREGIDO ✅
 app.use((req, res) => {
     console.log('❌ Ruta no encontrada:', req.method, req.originalUrl);
     res.status(404).json({
@@ -231,14 +228,19 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
     console.error('💥 Error global:', err);
 
-    res.status(500).json({
+    // Respuesta segura para producción
+    const errorResponse = {
         success: false,
-        message: 'Error interno del servidor',
-        ...(process.env.NODE_ENV !== 'production' && { 
-            stack: err.stack,
-            details: err.message 
-        })
-    });
+        message: 'Error interno del servidor'
+    };
+
+    // Solo incluir detalles en desarrollo
+    if (process.env.NODE_ENV !== 'production') {
+        errorResponse.details = err.message;
+        errorResponse.stack = err.stack;
+    }
+
+    res.status(500).json(errorResponse);
 });
 
 export default app;
