@@ -172,7 +172,7 @@ app.get('/health', (req, res) => {
 // 🔹 Preflight handler global - CORREGIDO ✅
 // -----------------------------
 // Esta es la línea que estaba causando el error - SOLUCIÓN:
-app.options('*', cors(corsOptions)); // ✅ Pasar las mismas opciones CORS
+app.options(/.*/, cors(corsOptions)); // ✅ Pasar las mismas opciones CORS
 
 // -----------------------------
 // 🔹 Rate limiters específicos
