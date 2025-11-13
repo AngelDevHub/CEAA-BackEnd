@@ -71,7 +71,14 @@ class InicioSesionController {
             const sessionKey = `session:${usuario.id_usuario}:${Date.now()}`;
             await redisClient.setEx(sessionKey, 7 * 24 * 3600, JSON.stringify({ ip: req.ip, userAgent: req.get('User-Agent'), timestamp: new Date().toISOString() }));
 
-            const cookieOptions = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', signed: true };
+            
+            const cookieOptions = { 
+                httpOnly: true, 
+                secure: process.env.NODE_ENV === 'production', // true en prod
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // <- cambio aquí
+                signed: true 
+            };
+
             res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
             res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 3600 * 1000 });
 
@@ -165,7 +172,7 @@ class InicioSesionController {
             res.cookie('accessToken', newAccessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                 signed: true,
                 maxAge: 15 * 60 * 1000 
             });
@@ -204,7 +211,7 @@ class InicioSesionController {
             const cookieOptions = {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                 signed: true
             };
 
