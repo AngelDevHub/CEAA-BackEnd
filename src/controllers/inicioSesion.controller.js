@@ -61,7 +61,12 @@ class InicioSesionController {
 
             await this.limpiarIntentosFallidos(req.ip, correo);
 
-            const tokenPayload = { id_usuario: usuario.id_usuario, role: usuario.role, nombre: usuario.nombre, correo: usuario.correo };
+            const tokenPayload = { 
+                id_usuario: usuario.id_usuario, 
+                role: usuario.role, 
+                nombre: usuario.nombre, 
+                correo: usuario.correo 
+            };
             const accessToken = createAccessToken(tokenPayload);
             const refreshToken = createRefreshToken(tokenPayload);
 
@@ -69,20 +74,43 @@ class InicioSesionController {
 
             // Guardar sesión en Redis
             const sessionKey = `session:${usuario.id_usuario}:${Date.now()}`;
-            await redisClient.setEx(sessionKey, 7 * 24 * 3600, JSON.stringify({ ip: req.ip, userAgent: req.get('User-Agent'), timestamp: new Date().toISOString() }));
+            await redisClient.setEx(sessionKey, 7 * 24 * 3600, JSON.stringify({ 
+                ip: req.ip, 
+                userAgent: req.get('User-Agent'), 
+                timestamp: new Date().toISOString() 
+            }));
 
-            
+            // 🔥 COOKIE OPTIONS ACTUALIZADAS - CRÍTICO
             const cookieOptions = { 
                 httpOnly: true, 
-                secure: process.env.NODE_ENV === 'production', // true en prod
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // <- cambio aquí
-                signed: true 
+                secure: true, // ✅ SIEMPRE true en producción (Railway usa HTTPS)
+                sameSite: 'none', // ✅ CRÍTICO para cross-domain
+                signed: true,
+                path: '/'
             };
 
-            res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
-            res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 3600 * 1000 });
+            res.cookie('accessToken', accessToken, { 
+                ...cookieOptions, 
+                maxAge: 15 * 60 * 1000 // 15 minutos
+            });
+            
+            res.cookie('refreshToken', refreshToken, { 
+                ...cookieOptions, 
+                maxAge: 7 * 24 * 3600 * 1000 // 7 días
+            });
 
-            return res.status(200).json({ success: true, message: 'Inicio de sesión exitoso.', data: { accessToken, expiresIn: 15 * 60, id: usuario.id_usuario, nombre: usuario.nombre, correo: usuario.correo } });
+            console.log('✅ Cookies establecidas correctamente para:', usuario.correo);
+
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Inicio de sesión exitoso.', 
+                data: { 
+                    id: usuario.id_usuario, 
+                    nombre: usuario.nombre, 
+                    correo: usuario.correo,
+                    role: usuario.role
+                } 
+            });
         } catch (err) {
             console.error('Error en iniciar sesión:', err);
             return res.status(500).json({ success: false, message: 'Error interno del servidor.' });
@@ -138,38 +166,50 @@ class InicioSesionController {
     refrescarToken = async (req, res) => {
         try {
             console.log('🔹 Intento de refrescar token');
-            console.log('Cookies recibidas:', req.cookies);
-            console.log('Cookies firmadas recibidas:', req.signedCookies);
+            console.log('🍪 Cookies recibidas:', req.cookies);
+            console.log('🔐 Cookies firmadas recibidas:', req.signedCookies);
+            console.log('🌐 Origen de la request:', req.headers.origin);
 
             const refreshTokenCookie = req.signedCookies.refreshToken;
 
             if (!refreshTokenCookie) {
-                console.warn('⚠️ No se recibió cookie de refresh token o no está firmada');
+                console.warn('⚠️ No se recibió cookie de refresh token firmada');
+                console.log('🔍 Revisando cookies normales:', req.cookies?.refreshToken);
                 return res.status(401).json({
                     success: false,
-                    message: 'Token de refresco requerido (o cookie no firmada).'
+                    message: 'Token de refresco requerido.'
                 });
             }
 
-            console.log('Refresh token recibido:', refreshTokenCookie);
+            console.log('✅ Refresh token recibido correctamente');
 
             const decoded = verifyRefreshToken(refreshTokenCookie);
-            console.log('Refresh token decodificado:', decoded);
+            console.log('🔓 Refresh token decodificado:', decoded);
 
             const userId = decoded.id_usuario;
             const usuario = await UsuariosModel.findByRefreshToken(userId, refreshTokenCookie);
 
             if (!usuario) {
                 console.warn('⚠️ No se encontró usuario con ese refresh token');
-                res.clearCookie('accessToken');
-                res.clearCookie('refreshToken');
+                
+                // 🔥 LIMPIAR COOKIES CON OPCIONES CORRECTAS
+                const clearCookieOptions = {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: 'none',
+                    path: '/'
+                };
+                
+                res.clearCookie('accessToken', clearCookieOptions);
+                res.clearCookie('refreshToken', clearCookieOptions);
+                
                 return res.status(401).json({
                     success: false,
                     message: 'Sesión inválida. Vuelva a iniciar sesión.'
                 });
             }
 
-            console.log('Usuario encontrado para refresco de token:', usuario.correo);
+            console.log('✅ Usuario encontrado para refresco:', usuario.correo);
 
             const tokenPayload = {
                 id_usuario: usuario.id_usuario,
@@ -179,31 +219,44 @@ class InicioSesionController {
             };
 
             const newAccessToken = createAccessToken(tokenPayload);
-            console.log('Nuevo access token generado');
+            console.log('🔄 Nuevo access token generado');
 
-            res.cookie('accessToken', newAccessToken, {
+            // 🔥 COOKIE OPTIONS ACTUALIZADAS - MISMAS QUE EN LOGIN
+            const cookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                secure: true,
+                sameSite: 'none',
                 signed: true,
+                path: '/',
                 maxAge: 15 * 60 * 1000 
-            });
+            };
 
-            console.log('Cookie de accessToken enviada al cliente');
+            res.cookie('accessToken', newAccessToken, cookieOptions);
+            console.log('✅ Cookie de accessToken enviada al cliente');
 
             return res.status(200).json({
                 success: true,
                 message: 'Access Token renovado.',
                 data: {
-                    accessToken: newAccessToken,
+                    accessToken: newAccessToken, // ✅ Mantener por si el frontend lo necesita
                     expiresIn: 15 * 60
                 }
             });
 
         } catch (error) {
             console.error('❌ Error refrescando token:', error);
-            res.clearCookie('accessToken');
-            res.clearCookie('refreshToken');
+            
+            // 🔥 LIMPIAR COOKIES EN CASO DE ERROR
+            const clearCookieOptions = {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none',
+                path: '/'
+            };
+            
+            res.clearCookie('accessToken', clearCookieOptions);
+            res.clearCookie('refreshToken', clearCookieOptions);
+            
             return res.status(401).json({
                 success: false,
                 message: 'Token de refresco expirado o inválido.'
@@ -213,35 +266,46 @@ class InicioSesionController {
 
     cerrarSesion = async (req, res) => {
         try {
-            const userId = req.user.id_usuario; 
-            await UsuariosModel.updateRefreshToken(userId, null);
+            const userId = req.user?.id_usuario;
+            
+            if (userId) {
+                await UsuariosModel.updateRefreshToken(userId, null);
 
-            // Eliminar sesiones en Redis por patrón
-            const keys = await redisClient.keys(`session:${userId}:*`);
-            if (keys.length) {
-                await redisClient.del(...keys);
+                // Eliminar sesiones en Redis por patrón
+                const keys = await redisClient.keys(`session:${userId}:*`);
+                if (keys.length) {
+                    await redisClient.del(...keys);
+                }
             }
 
-            const cookieOptions = {
+            // 🔥 COOKIE OPTIONS ACTUALIZADAS PARA LIMPIEZA
+            const clearCookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
-                signed: true
+                secure: true,
+                sameSite: 'none',
+                path: '/'
             };
 
-            res.clearCookie('accessToken', cookieOptions);
-            res.clearCookie('refreshToken', cookieOptions);
+            res.clearCookie('accessToken', clearCookieOptions);
+            res.clearCookie('refreshToken', clearCookieOptions);
 
-            return res.status(200).json({ success: true, message: 'Sesión cerrada exitosamente.' });
+            console.log('✅ Sesión cerrada correctamente para usuario:', userId);
+
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Sesión cerrada exitosamente.' 
+            });
         } catch (err) {
             console.error('Error al cerrar la sesión:', err);
-            return res.status(500).json({ success: false, message: 'Error interno del servidor al cerrar la sesión.' });
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Error interno del servidor al cerrar la sesión.' 
+            });
         }
     }
 
     getPerfil = async (req, res) => {
         try {
-
             const { id_usuario } = req.user;
 
             const usuario = await UsuariosModel.findById(id_usuario);
@@ -339,6 +403,5 @@ class InicioSesionController {
     }
 
 }
-
 
 export default new InicioSesionController();
