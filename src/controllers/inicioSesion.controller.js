@@ -195,14 +195,15 @@ class InicioSesionController {
                 // 🔥 LIMPIAR COOKIES CON OPCIONES CORRECTAS
                 const clearCookieOptions = {
                     httpOnly: true,
-                    secure: true,
+                    secure: process.env.NODE_ENV === 'production', // true solo en producción
                     sameSite: 'none',
-                    path: '/'
+                    path: '/',
+                    signed: true
                 };
-                
+
                 res.clearCookie('accessToken', clearCookieOptions);
                 res.clearCookie('refreshToken', clearCookieOptions);
-                
+
                 return res.status(401).json({
                     success: false,
                     message: 'Sesión inválida. Vuelva a iniciar sesión.'
@@ -249,13 +250,15 @@ class InicioSesionController {
             // 🔥 LIMPIAR COOKIES EN CASO DE ERROR
             const clearCookieOptions = {
                 httpOnly: true,
-                secure: true,
+                secure: process.env.NODE_ENV === 'production', // ok
                 sameSite: 'none',
-                path: '/'
+                path: '/',
+                signed: true
             };
-            
+
             res.clearCookie('accessToken', clearCookieOptions);
             res.clearCookie('refreshToken', clearCookieOptions);
+
             
             return res.status(401).json({
                 success: false,
@@ -281,13 +284,15 @@ class InicioSesionController {
             // 🔥 COOKIE OPTIONS ACTUALIZADAS PARA LIMPIEZA
             const clearCookieOptions = {
                 httpOnly: true,
-                secure: true,
+                secure: process.env.NODE_ENV === 'production', // ok
                 sameSite: 'none',
-                path: '/'
+                path: '/',
+                signed: true
             };
 
             res.clearCookie('accessToken', clearCookieOptions);
             res.clearCookie('refreshToken', clearCookieOptions);
+
 
             console.log('✅ Sesión cerrada correctamente para usuario:', userId);
 
