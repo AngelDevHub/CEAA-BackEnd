@@ -52,7 +52,6 @@ export const validateToken = (req, res, next) => {
   }
 };
 
-// Middleware para autenticación de dos factores
 export const require2FA = (req, res, next) => {
   if (!req.user?.twoFactorVerified) {
     return res.status(403).json({

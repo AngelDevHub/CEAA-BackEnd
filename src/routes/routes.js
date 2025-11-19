@@ -5,16 +5,16 @@ import routesInvernadero from './modules/routesSensor.js';
 
 const router = express.Router();
 
-// 🔐 Rutas de autenticación
+// Rutas de autenticación
 router.use('/auth', inicioSesion);
 
-// 👤 Rutas de usuarios
+// Rutas de usuarios
 router.use('/usuarios', routesUsuario);
 
-// 🌱 Rutas del invernadero (Firebase Realtime Database)
+// Rutas del invernadero (Firebase Realtime Database)
 router.use('/invernadero', routesInvernadero);
 
-// 🧪 Ruta de prueba
+// Ruta de prueba
 router.get('/test', (req, res) => {
     res.json({ 
         success: true, 

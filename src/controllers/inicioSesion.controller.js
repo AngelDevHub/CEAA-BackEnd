@@ -17,14 +17,14 @@ class InicioSesionController {
         const ipAttemptsKey = `attempts_ip:${ip}`;
         const emailAttemptsKey = `attempts_email:${correo}`;
 
-        const ipAttempts = await this.incrementCounter(ipAttemptsKey, 900_000);      // 15 min
-        const emailAttempts = await this.incrementCounter(emailAttemptsKey, 900_000); // 15 min
+        const ipAttempts = await this.incrementCounter(ipAttemptsKey, 900_000);      
+        const emailAttempts = await this.incrementCounter(emailAttemptsKey, 900_000);
 
         if (ipAttempts >= 5) {
-            await redisClient.setEx(`blocked_ip:${ip}`, 900, 'blocked'); // 15 min
+            await redisClient.setEx(`blocked_ip:${ip}`, 900, 'blocked');
         }
         if (emailAttempts >= 5) {
-            await redisClient.setEx(`blocked_email:${correo}`, 1800, 'blocked'); // 30 min
+            await redisClient.setEx(`blocked_email:${correo}`, 1800, 'blocked');
         }
     }
 
@@ -72,7 +72,6 @@ class InicioSesionController {
 
             await UsuariosModel.updateRefreshToken(usuario.id_usuario, refreshToken);
 
-            // Guardar sesión en Redis
             const sessionKey = `session:${usuario.id_usuario}:${Date.now()}`;
             await redisClient.setEx(sessionKey, 7 * 24 * 3600, JSON.stringify({ 
                 ip: req.ip, 
@@ -80,7 +79,6 @@ class InicioSesionController {
                 timestamp: new Date().toISOString() 
             }));
 
-            // 🔥 COOKIE OPTIONS ACTUALIZADAS - CRÍTICO
             const cookieOptions = { 
                 httpOnly: true, 
                 secure: process.env.NODE_ENV === 'production',
@@ -91,15 +89,13 @@ class InicioSesionController {
 
             res.cookie('accessToken', accessToken, { 
                 ...cookieOptions, 
-                maxAge: 15 * 60 * 1000 // 15 minutos
+                maxAge: 15 * 60 * 1000
             });
             
             res.cookie('refreshToken', refreshToken, { 
                 ...cookieOptions, 
-                maxAge: 7 * 24 * 3600 * 1000 // 7 días
+                maxAge: 7 * 24 * 3600 * 1000
             });
-
-            console.log('✅ Cookies establecidas correctamente para:', usuario.correo);
 
             return res.status(200).json({ 
                 success: true, 
@@ -112,7 +108,6 @@ class InicioSesionController {
                 } 
             });
         } catch (err) {
-            console.error('Error en iniciar sesión:', err);
             return res.status(500).json({ success: false, message: 'Error interno del servidor.' });
         }
     }
@@ -155,7 +150,6 @@ class InicioSesionController {
             });
 
         } catch (err) {
-            console.error('Error creando usuario:', err);
             res.status(500).json({ 
                 success: false, 
                 message: 'Error creando usuario' 
@@ -165,37 +159,27 @@ class InicioSesionController {
 
     refrescarToken = async (req, res) => {
         try {
-            console.log('🔹 Intento de refrescar token');
-            console.log('🍪 Cookies recibidas:', req.cookies);
-            console.log('🔐 Cookies firmadas recibidas:', req.signedCookies);
-            console.log('🌐 Origen de la request:', req.headers.origin);
+            
 
             const refreshTokenCookie = req.signedCookies.refreshToken;
 
             if (!refreshTokenCookie) {
-                console.warn('⚠️ No se recibió cookie de refresh token firmada');
-                console.log('🔍 Revisando cookies normales:', req.cookies?.refreshToken);
                 return res.status(401).json({
                     success: false,
                     message: 'Token de refresco requerido.'
                 });
             }
 
-            console.log('✅ Refresh token recibido correctamente');
-
             const decoded = verifyRefreshToken(refreshTokenCookie);
-            console.log('🔓 Refresh token decodificado:', decoded);
 
             const userId = decoded.id_usuario;
             const usuario = await UsuariosModel.findByRefreshToken(userId, refreshTokenCookie);
 
             if (!usuario) {
-                console.warn('⚠️ No se encontró usuario con ese refresh token');
                 
-                // 🔥 LIMPIAR COOKIES CON OPCIONES CORRECTAS
                 const clearCookieOptions = {
                     httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production', // true solo en producción
+                    secure: process.env.NODE_ENV === 'production',
                     sameSite: 'none',
                     path: '/',
                     signed: true
@@ -210,7 +194,6 @@ class InicioSesionController {
                 });
             }
 
-            console.log('✅ Usuario encontrado para refresco:', usuario.correo);
 
             const tokenPayload = {
                 id_usuario: usuario.id_usuario,
@@ -220,9 +203,7 @@ class InicioSesionController {
             };
 
             const newAccessToken = createAccessToken(tokenPayload);
-            console.log('🔄 Nuevo access token generado');
 
-            // 🔥 COOKIE OPTIONS ACTUALIZADAS - MISMAS QUE EN LOGIN
             const cookieOptions = {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
@@ -233,24 +214,21 @@ class InicioSesionController {
             };
 
             res.cookie('accessToken', newAccessToken, cookieOptions);
-            console.log('✅ Cookie de accessToken enviada al cliente');
 
             return res.status(200).json({
                 success: true,
                 message: 'Access Token renovado.',
                 data: {
-                    accessToken: newAccessToken, // ✅ Mantener por si el frontend lo necesita
+                    accessToken: newAccessToken,
                     expiresIn: 15 * 60
                 }
             });
 
         } catch (error) {
-            console.error('❌ Error refrescando token:', error);
             
-            // 🔥 LIMPIAR COOKIES EN CASO DE ERROR
             const clearCookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // ok
+                secure: process.env.NODE_ENV === 'production',
                 sameSite: 'none',
                 path: '/',
                 signed: true
@@ -274,17 +252,15 @@ class InicioSesionController {
             if (userId) {
                 await UsuariosModel.updateRefreshToken(userId, null);
 
-                // Eliminar sesiones en Redis por patrón
                 const keys = await redisClient.keys(`session:${userId}:*`);
                 if (keys.length) {
                     await redisClient.del(...keys);
                 }
             }
 
-            // 🔥 COOKIE OPTIONS ACTUALIZADAS PARA LIMPIEZA
             const clearCookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // ok
+                secure: process.env.NODE_ENV === 'production',
                 sameSite: 'none',
                 path: '/',
                 signed: true
@@ -294,14 +270,12 @@ class InicioSesionController {
             res.clearCookie('refreshToken', clearCookieOptions);
 
 
-            console.log('✅ Sesión cerrada correctamente para usuario:', userId);
 
             return res.status(200).json({ 
                 success: true, 
                 message: 'Sesión cerrada exitosamente.' 
             });
         } catch (err) {
-            console.error('Error al cerrar la sesión:', err);
             return res.status(500).json({ 
                 success: false, 
                 message: 'Error interno del servidor al cerrar la sesión.' 
@@ -329,7 +303,6 @@ class InicioSesionController {
                 data: userSafe
             });
         } catch (error) {
-            console.error('Error al obtener el perfil:', error);
             return res.status(500).json({
                 success: false,
                 message: 'Error interno al obtener el perfil del usuario.'
@@ -354,7 +327,6 @@ class InicioSesionController {
                 });
             }
 
-            // Actualizar nombre o correo
             if (nombre || correo) {
                 if (correo && userCurrent.correo !== correo) {
                     const existingUser = await UsuariosModel.findByEmail(correo);
@@ -365,7 +337,6 @@ class InicioSesionController {
                 await UsuariosModel.updateProfile(id_usuario, nombre, correo);
             }
 
-            // Cambiar contraseña
             if (nueva_clave) {
                 if (!clave_actual) {
                     return res.status(400).json({ message: 'Debes enviar tu contraseña actual para cambiarla.' });
@@ -383,13 +354,11 @@ class InicioSesionController {
                 const nuevaClaveHash = await bcrypt.hash(nueva_clave, 12);
                 await UsuariosModel.updatePassword(id_usuario, nuevaClaveHash);
 
-                // Eliminar todas las sesiones del usuario en Redis
                 const sessionKeys = await redisClient.keys(`session:${id_usuario}:*`);
                 if (sessionKeys.length) {
                     await redisClient.del(...sessionKeys);
                 }
 
-                // Limpiar refresh token
                 await UsuariosModel.updateRefreshToken(id_usuario, null); 
             }
 
@@ -399,7 +368,6 @@ class InicioSesionController {
             });
 
         } catch (error) {
-            console.error('Error al actualizar perfil:', error);
             return res.status(500).json({
                 success: false,
                 message: 'Error interno al actualizar el perfil del usuario.'

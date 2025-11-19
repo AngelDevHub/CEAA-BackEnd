@@ -1,6 +1,5 @@
 import http from "http";
 import { Server } from "socket.io";
-import chalk from "chalk";
 import app from "./app.js";
 import { PORT } from "./config.js";
 import { db } from "./firebase.js";
@@ -11,7 +10,6 @@ import {
   calcularIndiceCrecimiento,
 } from "./services/modeloPrediccion.js";
 
-// 🧠 Crear servidor HTTP y modelo IA
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -22,7 +20,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
-  transports: ["polling", "websocket"], // 🔹 polling fallback para producción
+  transports: ["polling", "websocket"],
 });
 
 let modelo = crearModelo();
@@ -31,7 +29,6 @@ const sensoresRef = db.ref("sensores");
 
 
 
-// 🧩 Procesar datos y emitir
 async function procesarDato(data) {
   try {
     historial.push(data);
@@ -49,11 +46,9 @@ async function procesarDato(data) {
     const resultado = { ...data, indiceCrecimiento, fecha: new Date().toISOString() };
     io.emit("nuevosDatos", { actual: resultado, predicciones });
   } catch (error) {
-    console.error("Error procesando datos del sensor:", error);
   }
 }
 
-// 🔥 Eventos Firebase
 ["child_added", "child_changed"].forEach(event =>
   sensoresRef.on(event, async snapshot => {
     const data = snapshot.val();
@@ -61,30 +56,12 @@ async function procesarDato(data) {
   })
 );
 
-// 💬 Socket.io
 io.on("connection", socket => {
-  console.log(chalk.green(`Cliente conectado: ${socket.id}`));
-
   socket.on("disconnect", reason => {
-    console.log(chalk.red(`Cliente desconectado: ${socket.id}, razón: ${reason}`));
   });
-
   socket.on("error", err => {
-    console.error(chalk.red(`Error en socket ${socket.id}:`), err);
   });
 });
 
-// 🚀 Iniciar servidor
 server.listen(PORT, () => {
-  console.log(chalk.blueBright("==========================================="));
-  console.log(chalk.greenBright("🚀 Server is running!"));
-  console.log(chalk.yellowBright(`📌 Listening on port: ${PORT}`));
-  
-  if (process.env.NODE_ENV === "development") {
-    console.log(chalk.cyanBright(`🌐 http://localhost:${PORT}`));
-  } else {
-    console.log(chalk.cyanBright("🌐 Server deployed! Use Railway URL for connections"));
-  }
-
-  console.log(chalk.blueBright("==========================================="));
 });

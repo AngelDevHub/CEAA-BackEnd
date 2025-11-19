@@ -12,7 +12,6 @@ class UsuariosController {
         count: users.length
       });
     } catch (err) {
-      console.error('Error obteniendo usuarios:', err);
       res.status(500).json({ 
         success: false, 
         message: 'Error interno del servidor al obtener usuarios' 
@@ -43,7 +42,6 @@ class UsuariosController {
         data: user 
       });
     } catch (err) {
-      console.error('Error obteniendo usuario:', err);
       res.status(500).json({ 
         success: false, 
         message: 'Error interno del servidor al obtener el usuario' 
@@ -100,7 +98,6 @@ class UsuariosController {
       });
 
     } catch (err) {
-      console.error('Error creando usuario:', err);
       res.status(500).json({ 
         success: false, 
         message: 'Error interno del servidor al crear usuario' 
@@ -158,7 +155,6 @@ class UsuariosController {
         message: 'Usuario actualizado exitosamente' 
       });
     } catch (err) {
-      console.error('Error actualizando usuario:', err);
       res.status(500).json({ 
         success: false, 
         message: 'Error interno del servidor al actualizar usuario' 
@@ -189,7 +185,6 @@ class UsuariosController {
         message: 'Usuario desactivado exitosamente' 
       });
     } catch (err) {
-      console.error('Error eliminando usuario:', err);
       res.status(500).json({ 
         success: false, 
         message: 'Error interno del servidor al eliminar usuario' 

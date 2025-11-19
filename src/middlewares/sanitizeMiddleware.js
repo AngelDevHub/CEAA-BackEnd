@@ -29,7 +29,6 @@ export const sanitizeInput = (req, res, next) => {
     });
   }
 
-  // Sanitizar params de URL
   if (req.params) {
     Object.keys(req.params).forEach(key => {
       if (typeof req.params[key] === 'string') {
@@ -115,7 +114,6 @@ export const validateUpdateProfile = [
   }
 ];
 
-// Middleware para validar IDs en parámetros
 export const validateId = [
   body('id').optional().isInt({ min: 1 }).withMessage('ID debe ser un número entero positivo'),
   (req, res, next) => {

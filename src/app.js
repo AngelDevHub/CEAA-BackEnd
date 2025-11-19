@@ -7,30 +7,24 @@ import rateLimit from 'express-rate-limit';
 import { sanitizeInput } from './middlewares/sanitizeMiddleware.js';
 
 const app = express();
-app.set('trust proxy', 1); // ✅ IMPORTANTE para Railway/Vercel
+app.set('trust proxy', 1);
 
-// -----------------------------
-// 🔹 CORS configurado CORRECTAMENTE - PRIMERO
-// -----------------------------
 const allowedOrigins = [
     "http://localhost:5173",
     "https://ceaa-front-end.vercel.app"
 ];
 
-// 🔥 CORS CONFIGURACIÓN CRÍTICA - ACTUALIZADA
 const corsOptions = {
     origin: function (origin, callback) {
-        // Permitir requests sin origin (como mobile apps, Postman, o server-to-server)
         if (!origin) return callback(null, true);
         
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            console.log('🚫 Origen bloqueado por CORS:', origin);
             callback(new Error("No permitido por CORS"));
         }
     },
-    credentials: true, // ✅ ESTO ES ESENCIAL para cookies
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
         'Content-Type', 
@@ -43,19 +37,13 @@ const corsOptions = {
     exposedHeaders: [
         'Authorization'
     ],
-    maxAge: 86400 // Preflight cache por 24 horas
+    maxAge: 86400
 };
 
 app.use(cors(corsOptions));
 
-// -----------------------------
-// 🔹 Cookie parser - DEBE ir después de CORS
-// -----------------------------
 app.use(cookieParser(process.env.COOKIE_SECRET || 'fallback-secret'));
 
-// -----------------------------
-// 🔹 Body parser
-// -----------------------------
 app.use(express.json({
     limit: '10mb',
     verify: (req, res, buf) => {
@@ -76,11 +64,8 @@ app.use(express.urlencoded({
     limit: '10mb'
 }));
 
-// -----------------------------
-// 🔹 Rate Limiters
-// -----------------------------
 const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
+    windowMs: 15 * 60 * 1000,
     max: 100,
     message: {
         success: false,
@@ -102,9 +87,6 @@ const authLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-// -----------------------------
-// 🔹 Seguridad con Helmet (configurado para cookies)
-// -----------------------------
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -115,35 +97,19 @@ app.use(helmet({
         }
     },
     crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" }, // ✅ Para cookies cross-domain
+    crossOriginResourcePolicy: { policy: "cross-origin" },
     referrerPolicy: { policy: "strict-origin-when-cross-origin" }
 }));
 
-// -----------------------------
-// 🔹 Sanitización de inputs
-// -----------------------------
 app.use(sanitizeInput);
 
-// -----------------------------
-// 🔹 Middleware para debug de cookies (solo desarrollo)
-// -----------------------------
 if (process.env.NODE_ENV !== 'production') {
     app.use((req, res, next) => {
-        console.log('🍪 Cookies recibidas:', req.cookies);
-        console.log('🔐 Cookies firmadas recibidas:', req.signedCookies);
-        console.log('🌐 Origen de la request:', req.headers.origin);
-        console.log('📧 User-Agent:', req.headers['user-agent']);
         next();
     });
 }
 
-// -----------------------------
-// 🔹 Cabeceras de seguridad adicionales
-// -----------------------------
 app.use((req, res, next) => {
-    // No establecer Access-Control-Allow-Origin manualmente aquí
-    // CORS middleware ya se encarga de esto
-    
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     
@@ -155,9 +121,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// -----------------------------
-// 🔹 Health check mejorado
-// -----------------------------
 app.get('/health', (req, res) => {
     res.status(200).json({
         success: true,
@@ -168,29 +131,25 @@ app.get('/health', (req, res) => {
     });
 });
 
-// -----------------------------
-// 🔹 Preflight handler global - CORREGIDO ✅
-// -----------------------------
-// Esta es la línea que estaba causando el error - SOLUCIÓN:
-app.options(/.*/, cors(corsOptions)); // ✅ Pasar las mismas opciones CORS
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'Servidor funcionando correctamente',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+        cookiesEnabled: true
+    });
+});
 
-// -----------------------------
-// 🔹 Rate limiters específicos
-// -----------------------------
+app.options(/.*/, cors(corsOptions));
+
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/registro', authLimiter);
 
-// -----------------------------
-// 🔹 Rutas principales
-// -----------------------------
 app.use("/api", routes);
 
-// -----------------------------
-// 🔹 Manejo de errores MEJORADO
-// -----------------------------
 app.use((err, req, res, next) => {
     if (err.message === 'No permitido por CORS') {
-        console.log('🚫 Error CORS:', req.headers.origin);
         return res.status(403).json({
             success: false,
             message: 'Origen no permitido',
@@ -215,26 +174,20 @@ app.use((err, req, res, next) => {
     next(err);
 });
 
-// 404 handler - CORREGIDO ✅
 app.use((req, res) => {
-    console.log('❌ Ruta no encontrada:', req.method, req.originalUrl);
     res.status(404).json({
         success: false,
         message: `Ruta no encontrada: ${req.method} ${req.originalUrl}`
     });
 });
 
-// Error handler global
 app.use((err, req, res, next) => {
-    console.error('💥 Error global:', err);
-
-    // Respuesta segura para producción
+    
     const errorResponse = {
         success: false,
         message: 'Error interno del servidor'
     };
 
-    // Solo incluir detalles en desarrollo
     if (process.env.NODE_ENV !== 'production') {
         errorResponse.details = err.message;
         errorResponse.stack = err.stack;

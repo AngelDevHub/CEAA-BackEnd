@@ -43,7 +43,6 @@ export const loginRateLimiter = rateLimit({
       });
       
     } catch (error) {
-      console.error('Error en rate limiting:', error);
       next(error);
     }
   }
@@ -69,7 +68,6 @@ export const checkAccountLock = async (req, res, next) => {
     }
     next();
   } catch (error) {
-    console.error('Error verificando bloqueo de cuenta:', error);
     next(error);
   }
 };
@@ -100,7 +98,6 @@ export const clearFailedAttempts = async (ip, correo) => {
     await redis.del(`failed_attempts_email:${correo}`);
     await redis.del(`account_lock:${correo}`);
   } catch (error) {
-    console.error('Error limpiando intentos fallidos:', error);
   }
 };
 
