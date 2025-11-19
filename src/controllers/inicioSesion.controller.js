@@ -86,7 +86,8 @@ class InicioSesionController {
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'none',
                 signed: true,
-                path: '/'
+                path: '/',
+                partitioned: true
             };
 
             res.cookie('accessToken', accessToken, { 
@@ -195,10 +196,11 @@ class InicioSesionController {
                 // 🔥 LIMPIAR COOKIES CON OPCIONES CORRECTAS
                 const clearCookieOptions = {
                     httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production', // true solo en producción
+                    secure: process.env.NODE_ENV === 'production',
                     sameSite: 'none',
                     path: '/',
-                    signed: true
+                    signed: true,
+                    partitioned: true
                 };
 
                 res.clearCookie('accessToken', clearCookieOptions);
@@ -229,7 +231,8 @@ class InicioSesionController {
                 sameSite: 'none',
                 signed: true,
                 path: '/',
-                maxAge: 15 * 60 * 1000 
+                maxAge: 15 * 60 * 1000,
+                partitioned: true
             };
 
             res.cookie('accessToken', newAccessToken, cookieOptions);
@@ -250,10 +253,11 @@ class InicioSesionController {
             // 🔥 LIMPIAR COOKIES EN CASO DE ERROR
             const clearCookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // ok
+                secure: process.env.NODE_ENV === 'production',
                 sameSite: 'none',
                 path: '/',
-                signed: true
+                signed: true,
+                partitioned: true
             };
 
             res.clearCookie('accessToken', clearCookieOptions);
