@@ -8,6 +8,7 @@ import {
   crearModelo,
   entrenarModelo,
   generarPredicciones,
+  calcularIndiceCrecimiento,
 } from "./services/modeloPrediccion.js";
 
 // 🧠 Crear servidor HTTP y modelo IA
@@ -28,14 +29,7 @@ let modelo = crearModelo();
 let historial = [];
 const sensoresRef = db.ref("sensores");
 
-// 🌱 Calcular índice de crecimiento
-function calcularIndiceCrecimiento(temperatura, humedad, nitrogeno) {
-  const pesoTemp = 0.4, pesoHum = 0.3, pesoNit = 0.3;
-  const tempNorm = Math.min(temperatura / 30, 1);
-  const humNorm = Math.min(humedad / 100, 1);
-  const nitNorm = Math.min(nitrogeno / 10, 1);
-  return parseFloat(((pesoTemp * tempNorm + pesoHum * humNorm + pesoNit * nitNorm) * 100).toFixed(2));
-}
+
 
 // 🧩 Procesar datos y emitir
 async function procesarDato(data) {

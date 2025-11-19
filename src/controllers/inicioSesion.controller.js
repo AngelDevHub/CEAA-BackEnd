@@ -83,8 +83,8 @@ class InicioSesionController {
             // 🔥 COOKIE OPTIONS ACTUALIZADAS - CRÍTICO
             const cookieOptions = { 
                 httpOnly: true, 
-                secure: true, // ✅ SIEMPRE true en producción (Railway usa HTTPS)
-                sameSite: 'none', // ✅ CRÍTICO para cross-domain
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'none',
                 signed: true,
                 path: '/'
             };
@@ -225,7 +225,7 @@ class InicioSesionController {
             // 🔥 COOKIE OPTIONS ACTUALIZADAS - MISMAS QUE EN LOGIN
             const cookieOptions = {
                 httpOnly: true,
-                secure: true,
+                secure: process.env.NODE_ENV === 'production',
                 sameSite: 'none',
                 signed: true,
                 path: '/',

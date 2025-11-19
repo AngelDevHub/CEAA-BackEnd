@@ -149,6 +149,14 @@ class UsuariosModel {
     async getById(id) {
         return this.findById(id);
     }
+    async update(id, nombre = null, correo = null) {
+        return this.updateProfile(id, nombre, correo);
+    }
+    async delete(id) {
+        const query = 'UPDATE usuarios SET estatus = "inactivo" WHERE id_usuario = ?';
+        const [result] = await pool.execute(query, [id]);
+        return result.affectedRows;
+    }
 }
 
 export default new UsuariosModel();

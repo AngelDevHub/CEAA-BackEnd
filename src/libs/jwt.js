@@ -5,7 +5,7 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 export const createAccessToken = (payload) => {
     return jwt.sign(payload, JWT_SECRET, {
-        expiresIn: '1h',
+        expiresIn: '15m',
         issuer: 'ceaa-backend'
     });
 };
