@@ -6,7 +6,7 @@ import { validateLogin } from '../../middlewares/sanitizeMiddleware.js';
 const router = express.Router();
 
 router.post('/login', validateLogin, inicioSesionController.iniciarSesion);
-router.post('/logout',validateToken, inicioSesionController.cerrarSesion);
+router.post('/logout', inicioSesionController.cerrarSesion);
 router.post('/registro', inicioSesionController.registerUser);
 router.get('/perfil', validateToken, inicioSesionController.getPerfil);
 router.put('/perfil', validateToken, inicioSesionController.updatePerfil);
