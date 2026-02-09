@@ -21,14 +21,15 @@ export const SensorModel = {
   },
 
   // Crear un nuevo registro
-  async create({ humedad, nitrogeno, temperatura, alerta_nitrogeno = "OK" }) {
+  async create({ humedad, nitrogeno, temperatura, alerta_nitrogeno = "OK", riego = null }) {
     const timestamp = new Date().toISOString(); // Fecha actual en formato ISO
     const newRef = sensorRef.push();
     await newRef.set({
-      humedad: humedad.toString(),       // aseguramos que sea string
-      nitrogeno: nitrogeno.toString(),   // aseguramos que sea string
-      temperatura,                       // puede quedar como number
+      humedad: humedad.toString(),
+      nitrogeno: nitrogeno.toString(),
+      temperatura,
       alerta_nitrogeno,
+      riego: riego !== null && riego !== undefined ? riego.toString() : undefined,
       timestamp,
     });
     return newRef.key;

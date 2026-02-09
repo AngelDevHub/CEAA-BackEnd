@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import UsuariosModel from '../models/usuarios.model.js';
 import { createAccessToken, createRefreshToken, verifyRefreshToken } from '../libs/jwt.js';
 import redisClient from '../libs/redis.js';
+import path from 'path';
 
 class InicioSesionController {
 
@@ -40,26 +41,47 @@ class InicioSesionController {
 
         try {
             if (!correo || !clave) return res.status(400).json({ success: false, message: 'Faltan credenciales.' });
-
-            const isIpBlocked = await redisClient.get(`blocked_ip:${req.ip}`);
+            let isIpBlocked = false;
+            let isEmailBlocked = false;
+            try {
+                isIpBlocked = await redisClient.get(`blocked_ip:${req.ip}`);
+            } catch (e) {
+                console.warn('Redis no disponible (blocked_ip):', e?.message || e);
+            }
             if (isIpBlocked) return res.status(429).json({ success: false, message: 'Demasiados intentos. Intente más tarde.' });
 
-            const isEmailBlocked = await redisClient.get(`blocked_email:${correo}`);
+            try {
+                isEmailBlocked = await redisClient.get(`blocked_email:${correo}`);
+            } catch (e) {
+                console.warn('Redis no disponible (blocked_email):', e?.message || e);
+            }
             if (isEmailBlocked) return res.status(429).json({ success: false, message: 'Cuenta temporalmente bloqueada.' });
 
             const usuario = await UsuariosModel.findByEmail(correo);
             if (!usuario) {
-                await this.registrarIntentoFallido(req.ip, correo);
-                return res.status(401).json({ success: false, message: 'Credenciales inválidas.' });
+                try {
+                    await this.registrarIntentoFallido(req.ip, correo);
+                } catch (e) {
+                    console.warn('No se pudo registrar intento fallido (usuario no encontrado):', e?.message || e);
+                }
+                return res.status(401).json({ success: false, message: 'Correo o contraseña incorrectos.' });
             }
 
             const isMatch = await bcrypt.compare(clave, usuario.clave);
             if (!isMatch) {
-                await this.registrarIntentoFallido(req.ip, correo);
-                return res.status(401).json({ success: false, message: 'Credenciales inválidas.' });
+                try {
+                    await this.registrarIntentoFallido(req.ip, correo);
+                } catch (e) {
+                    console.warn('No se pudo registrar intento fallido (contraseña incorrecta):', e?.message || e);
+                }
+                return res.status(401).json({ success: false, message: 'Correo o contraseña incorrectos.' });
             }
 
-            await this.limpiarIntentosFallidos(req.ip, correo);
+            try {
+                await this.limpiarIntentosFallidos(req.ip, correo);
+            } catch (e) {
+                console.warn('No se pudieron limpiar intentos fallidos:', e?.message || e);
+            }
 
             const tokenPayload = { 
                 id_usuario: usuario.id_usuario, 
@@ -72,22 +94,25 @@ class InicioSesionController {
 
             await UsuariosModel.updateRefreshToken(usuario.id_usuario, refreshToken);
 
-            // Guardar sesión en Redis
-            const sessionKey = `session:${usuario.id_usuario}:${Date.now()}`;
-            await redisClient.setEx(sessionKey, 7 * 24 * 3600, JSON.stringify({ 
-                ip: req.ip, 
-                userAgent: req.get('User-Agent'), 
-                timestamp: new Date().toISOString() 
-            }));
+            // Guardar sesión en Redis (no bloquear login si falla)
+            try {
+                const sessionKey = `session:${usuario.id_usuario}:${Date.now()}`;
+                await redisClient.setEx(sessionKey, 7 * 24 * 3600, JSON.stringify({ 
+                    ip: req.ip, 
+                    userAgent: req.get('User-Agent'), 
+                    timestamp: new Date().toISOString() 
+                }));
+            } catch (e) {
+                console.warn('No se pudo guardar sesión en Redis:', e?.message || e);
+            }
 
             // 🔥 COOKIE OPTIONS ACTUALIZADAS - CRÍTICO
             const cookieOptions = { 
                 httpOnly: true, 
-                secure: process.env.NODE_ENV === 'production',
+                secure: true,
                 sameSite: 'none',
                 signed: true,
-                path: '/',
-                partitioned: true
+                path: '/'
             };
 
             res.cookie('accessToken', accessToken, { 
@@ -227,7 +252,7 @@ class InicioSesionController {
             // 🔥 COOKIE OPTIONS ACTUALIZADAS - MISMAS QUE EN LOGIN
             const cookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
+                secure: true,
                 sameSite: 'none',
                 signed: true,
                 path: '/',
@@ -273,14 +298,8 @@ class InicioSesionController {
 
     cerrarSesion = async (req, res) => {
         try {
-            let userId = req.user?.id_usuario;
-            
-            if (!userId && req.signedCookies?.refreshToken) {
-                try {
-                    const decoded = verifyRefreshToken(req.signedCookies.refreshToken);
-                    userId = decoded.id_usuario;
-                } catch {}
-            }
+            const userId = req.user?.id_usuario;
+
             if (userId) {
                 await UsuariosModel.updateRefreshToken(userId, null);
 

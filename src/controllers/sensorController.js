@@ -21,14 +21,15 @@ export const SensorController = {
   // Agregar un nuevo registro de sensor
   async agregarSensor(req, res) {
     try {
-      const { humedad, nitrogeno, temperatura, alerta_nitrogeno } = req.body;
+      const { humedad, nitrogeno, temperatura, alerta_nitrogeno, riego } = req.body;
 
       // Crear el registro con los datos recibidos
       const id = await SensorModel.create({
         humedad,
         nitrogeno,
         temperatura,
-        alerta_nitrogeno, // si no viene, SensorModel lo pone como "OK"
+        alerta_nitrogeno,
+        riego,
       });
 
       res.json({
