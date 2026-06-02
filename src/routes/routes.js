@@ -2,6 +2,9 @@ import express from 'express';
 import inicioSesion from './modules/routesLogin.js';
 import routesUsuario from './modules/routesUsuario.js';
 import routesInvernadero from './modules/routesSensor.js';
+import routesTareas from './modules/routesTareas.js';
+import routesBitacoras from './modules/routesBitacoras.js';
+import routesDispositivos from './modules/routesDispositivos.js';
 
 const router = express.Router();
 
@@ -13,6 +16,15 @@ router.use('/usuarios', routesUsuario);
 
 // 🌱 Rutas del invernadero (Firebase Realtime Database)
 router.use('/invernadero', routesInvernadero);
+
+// ✅ Tareas (huerto)
+router.use('/tareas', routesTareas);
+
+// ✅ Bitácora de campo
+router.use('/bitacoras', routesBitacoras);
+
+// ✅ Dispositivos (mantenimiento/estado)
+router.use('/dispositivos', routesDispositivos);
 
 // 🧪 Ruta de prueba
 router.get('/test', (req, res) => {
