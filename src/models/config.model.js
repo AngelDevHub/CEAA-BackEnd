@@ -13,6 +13,21 @@ class ConfigModel {
     return valueJson;
   }
 
+  async get(key) {
+    const [rows] = await pool.execute(
+      "SELECT `key`, `value_json`, updated_by, updated_at FROM configuracion WHERE `key` = ? LIMIT 1",
+      [key]
+    );
+    const r = rows[0];
+    if (!r) return null;
+    return {
+      key: r.key,
+      value: this.parseValue(r.value_json),
+      updated_by: r.updated_by,
+      updated_at: r.updated_at
+    };
+  }
+
   async list() {
     const [rows] = await pool.execute(
       "SELECT `key`, `value_json`, updated_by, updated_at FROM configuracion ORDER BY `key`"

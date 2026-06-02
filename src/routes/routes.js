@@ -8,6 +8,7 @@ import routesDispositivos from './modules/routesDispositivos.js';
 import routesActividad from './modules/routesActividad.js';
 import routesRbac from './modules/routesRbac.js';
 import routesConfig from './modules/routesConfig.js';
+import routesReportes from './modules/routesReportes.js';
 
 const router = express.Router();
 
@@ -37,6 +38,9 @@ router.use('/rbac', routesRbac);
 
 // ✅ Configuración (umbrales / sistema)
 router.use('/config', routesConfig);
+
+// ✅ Reportes (diario / semanal)
+router.use('/reportes', routesReportes);
 
 // 🧪 Ruta de prueba
 router.get('/test', (req, res) => {

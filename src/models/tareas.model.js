@@ -10,6 +10,22 @@ class TareasModel {
     return result.insertId;
   }
 
+  async findRecentOpenByTitlePrefix({ asignado_a, titlePrefix, minutes = 120 }) {
+    const safeMinutes = Math.max(1, Math.min(24 * 60, Number(minutes) || 120));
+    const query = `
+      SELECT id_tarea
+      FROM tareas
+      WHERE asignado_a = ?
+        AND titulo LIKE ?
+        AND estado IN ('pendiente', 'en_progreso')
+        AND creado_en >= DATE_SUB(NOW(), INTERVAL ? MINUTE)
+      ORDER BY creado_en DESC
+      LIMIT 1
+    `;
+    const [rows] = await pool.execute(query, [asignado_a, `${titlePrefix}%`, safeMinutes]);
+    return rows[0] || null;
+  }
+
   async findAll() {
     const query = `
       SELECT
@@ -96,4 +112,3 @@ class TareasModel {
 }
 
 export default new TareasModel();
-

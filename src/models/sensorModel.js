@@ -20,6 +20,24 @@ export const SensorModel = {
     return { total, data: formattedData };
   },
 
+  async getRangeByTimestamp({ startIso, endIso }) {
+    const snapshot = await sensorRef
+      .orderByChild("timestamp")
+      .startAt(startIso)
+      .endAt(endIso)
+      .once("value");
+
+    const data = snapshot.val();
+    const formattedData = data
+      ? Object.entries(data).map(([id, item]) => ({
+          id,
+          ...item
+        }))
+      : [];
+
+    return { total: formattedData.length, data: formattedData };
+  },
+
   // Crear un nuevo registro
   async create({ humedad, nitrogeno, temperatura, alerta_nitrogeno = "OK", riego = null }) {
     const timestamp = new Date().toISOString(); // Fecha actual en formato ISO

@@ -173,6 +173,20 @@ class UsuariosModel {
         return rows;
     }
 
+    async findFirstByRole(roleName) {
+        const query = `
+            SELECT u.id_usuario, u.nombre, u.correo
+            FROM usuarios u
+            JOIN usuario_roles ur ON ur.id_usuario = u.id_usuario
+            JOIN roles r ON r.id_rol = ur.id_rol
+            WHERE u.estatus = 'activo' AND r.nombre = ?
+            ORDER BY u.id_usuario ASC
+            LIMIT 1
+        `;
+        const [rows] = await pool.execute(query, [roleName]);
+        return rows[0] || null;
+    }
+
     // Alias para métodos de lectura (compatibilidad con otros estilos de código)
     async getAll() {
         return this.findAll();
