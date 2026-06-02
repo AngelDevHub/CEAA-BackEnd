@@ -1,13 +1,25 @@
 import { pool } from "../db.js";
 
 class ConfigModel {
+  parseValue(valueJson) {
+    if (valueJson === null || valueJson === undefined) return null;
+    if (typeof valueJson === "string") {
+      try {
+        return JSON.parse(valueJson);
+      } catch {
+        return valueJson;
+      }
+    }
+    return valueJson;
+  }
+
   async list() {
     const [rows] = await pool.execute(
       "SELECT `key`, `value_json`, updated_by, updated_at FROM configuracion ORDER BY `key`"
     );
     return rows.map((r) => ({
       key: r.key,
-      value: r.value_json ? JSON.parse(r.value_json) : null,
+      value: this.parseValue(r.value_json),
       updated_by: r.updated_by,
       updated_at: r.updated_at
     }));
@@ -28,4 +40,3 @@ class ConfigModel {
 }
 
 export default new ConfigModel();
-
