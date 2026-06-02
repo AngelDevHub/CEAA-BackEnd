@@ -1,4 +1,5 @@
 import BitacorasModel from "../models/bitacoras.model.js";
+import ActividadModel from "../models/actividad.model.js";
 
 class BitacorasController {
   async list(req, res) {
@@ -42,6 +43,12 @@ class BitacorasController {
         sector: typeof sector === "string" ? sector.trim() : ""
       });
 
+      await ActividadModel.create({
+        id_usuario: req.user.id_usuario,
+        accion: "log.created",
+        detalle: { id_bitacora: id, id_tarea: taskId, sector: typeof sector === "string" ? sector.trim() : "" }
+      });
+
       return res.status(201).json({
         success: true,
         message: "Bitácora registrada",
@@ -57,4 +64,3 @@ class BitacorasController {
 }
 
 export default new BitacorasController();
-

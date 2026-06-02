@@ -1,4 +1,5 @@
 import TareasModel from "../models/tareas.model.js";
+import ActividadModel from "../models/actividad.model.js";
 
 class TareasController {
   async list(req, res) {
@@ -45,6 +46,12 @@ class TareasController {
         creado_por: req.user.id_usuario
       });
 
+      await ActividadModel.create({
+        id_usuario: req.user.id_usuario,
+        accion: "task.created",
+        detalle: { id_tarea: id, asignado_a: Number(asignado_a), prioridad: p }
+      });
+
       return res.status(201).json({
         success: true,
         message: "Tarea creada",
@@ -88,6 +95,12 @@ class TareasController {
         return res.status(404).json({ success: false, message: "Tarea no encontrada" });
       }
 
+      await ActividadModel.create({
+        id_usuario: req.user.id_usuario,
+        accion: "task.status.updated",
+        detalle: { id_tarea, estado }
+      });
+
       return res.json({ success: true, message: "Tarea actualizada" });
     } catch (error) {
       return res.status(500).json({
@@ -99,4 +112,3 @@ class TareasController {
 }
 
 export default new TareasController();
-

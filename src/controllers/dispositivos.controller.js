@@ -1,4 +1,5 @@
 import DispositivosModel from "../models/dispositivos.model.js";
+import ActividadModel from "../models/actividad.model.js";
 
 class DispositivosController {
   async list(req, res) {
@@ -34,6 +35,12 @@ class DispositivosController {
         updated_by: req.user.id_usuario
       });
 
+      await ActividadModel.create({
+        id_usuario: req.user.id_usuario,
+        accion: "device.status.updated",
+        detalle: { clave, modo, estado_manual }
+      });
+
       return res.json({ success: true, message: "Dispositivo actualizado" });
     } catch (error) {
       return res.status(500).json({ success: false, message: "Error al actualizar dispositivo" });
@@ -42,4 +49,3 @@ class DispositivosController {
 }
 
 export default new DispositivosController();
-
