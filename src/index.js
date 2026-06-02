@@ -109,6 +109,7 @@ async function maybeCreatePreventiveIrrigationTask({ actual, predicciones }) {
 
 // 🧩 Procesar datos y emitir
 async function procesarDato(data) {
+  try {
     const normalized = {
       ...data,
       temperatura: toNumber(data?.temperatura) ?? data?.temperatura,
@@ -117,25 +118,25 @@ async function procesarDato(data) {
     };
 
     historial.push(normalized);
-    historial.push(data);
     if (historial.length > 30) historial.shift();
 
+    modelo = await entrenarModelo(modelo, historial);
     const predicciones = await generarPredicciones(modelo, normalized);
-    const predicciones = await generarPredicciones(modelo, data);
 
+    const indiceCrecimiento = calcularIndiceCrecimiento(
       normalized.temperatura,
       normalized.humedad,
       normalized.nitrogeno
-      data.nitrogeno
     );
+
     const resultado = { ...normalized, indiceCrecimiento, fecha: new Date().toISOString() };
-    const resultado = { ...data, indiceCrecimiento, fecha: new Date().toISOString() };
+    io.emit("nuevosDatos", { actual: resultado, predicciones });
 
     await maybeCreatePreventiveIrrigationTask({ actual: resultado, predicciones });
-    io.emit("nuevosDatos", { actual: resultado, predicciones });
   } catch (error) {
     console.error("Error procesando datos del sensor:", error);
   }
+}
 
 // 🔥 Eventos Firebase
 ["child_added", "child_changed"].forEach(event =>
