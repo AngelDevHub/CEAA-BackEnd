@@ -41,6 +41,37 @@ class UsuariosModel {
         return rows[0] || null;
     }
 
+    async getRolesByUserId(id_usuario) {
+        const query = `
+            SELECT r.nombre
+            FROM usuario_roles ur
+            JOIN roles r ON r.id_rol = ur.id_rol
+            WHERE ur.id_usuario = ?
+        `;
+        const [rows] = await pool.execute(query, [id_usuario]);
+        return rows.map(r => r.nombre);
+    }
+
+    async getPermissionsByUserId(id_usuario) {
+        const query = `
+            SELECT DISTINCT p.codigo
+            FROM (
+                SELECT rp.id_permiso
+                FROM usuario_roles ur
+                JOIN rol_permisos rp ON rp.id_rol = ur.id_rol
+                WHERE ur.id_usuario = ?
+                UNION
+                SELECT up.id_permiso
+                FROM usuario_permisos up
+                WHERE up.id_usuario = ?
+            ) x
+            JOIN permisos p ON p.id_permiso = x.id_permiso
+            ORDER BY p.codigo
+        `;
+        const [rows] = await pool.execute(query, [id_usuario, id_usuario]);
+        return rows.map(r => r.codigo);
+    }
+
     /**
      * Crea un nuevo usuario en la base de datos.
      * @param {string} nombre - Nombre del usuario.

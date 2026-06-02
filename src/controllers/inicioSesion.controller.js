@@ -83,9 +83,15 @@ class InicioSesionController {
                 console.warn('No se pudieron limpiar intentos fallidos:', e?.message || e);
             }
 
+            const roles = await UsuariosModel.getRolesByUserId(usuario.id_usuario);
+            const permissions = await UsuariosModel.getPermissionsByUserId(usuario.id_usuario);
+            const role = roles[0] || 'user';
+
             const tokenPayload = { 
                 id_usuario: usuario.id_usuario, 
-                role: usuario.role, 
+                role,
+                roles,
+                permissions,
                 nombre: usuario.nombre, 
                 correo: usuario.correo 
             };
@@ -134,7 +140,9 @@ class InicioSesionController {
                     id: usuario.id_usuario, 
                     nombre: usuario.nombre, 
                     correo: usuario.correo,
-                    role: usuario.role
+                    role,
+                    roles,
+                    permissions
                 } 
             });
         } catch (err) {
@@ -239,9 +247,15 @@ class InicioSesionController {
 
             console.log('✅ Usuario encontrado para refresco:', usuario.correo);
 
+            const roles = await UsuariosModel.getRolesByUserId(usuario.id_usuario);
+            const permissions = await UsuariosModel.getPermissionsByUserId(usuario.id_usuario);
+            const role = roles[0] || 'user';
+
             const tokenPayload = {
                 id_usuario: usuario.id_usuario,
-                role: usuario.role,
+                role,
+                roles,
+                permissions,
                 nombre: usuario.nombre,
                 correo: usuario.correo
             };
@@ -355,7 +369,12 @@ class InicioSesionController {
 
             return res.status(200).json({
                 success: true,
-                data: userSafe
+                data: {
+                    ...userSafe,
+                    role: req.user?.role,
+                    roles: req.user?.roles || [],
+                    permissions: req.user?.permissions || []
+                }
             });
         } catch (error) {
             console.error('Error al obtener el perfil:', error);

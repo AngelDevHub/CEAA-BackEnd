@@ -5,6 +5,7 @@ import routes from './routes/routes.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { sanitizeInput } from './middlewares/sanitizeMiddleware.js';
+import { COOKIE_SECRET, NODE_ENV } from './config.js';
 
 const app = express();
 app.set('trust proxy', 1); // ✅ IMPORTANTE para Railway/Vercel
@@ -51,7 +52,8 @@ app.use(cors(corsOptions));
 // -----------------------------
 // 🔹 Cookie parser - DEBE ir después de CORS
 // -----------------------------
-app.use(cookieParser(process.env.COOKIE_SECRET || 'fallback-secret'));
+const cookieSecret = COOKIE_SECRET || (NODE_ENV !== 'production' ? 'dev_cookie_secret' : undefined);
+app.use(cookieParser(cookieSecret));
 
 // -----------------------------
 // 🔹 Body parser

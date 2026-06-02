@@ -102,9 +102,57 @@ export const requireRole = (roles) => {
   };
 };
 
+export const checkPermission = (requiredPermission) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Acceso denegado. Token requerido.'
+      });
+    }
+
+    const permissions = Array.isArray(req.user.permissions) ? req.user.permissions : [];
+    if (!permissions.includes(requiredPermission)) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para realizar esta acción',
+        requiredPermission
+      });
+    }
+
+    next();
+  };
+};
+
+export const checkAnyPermission = (requiredPermissions) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Acceso denegado. Token requerido.'
+      });
+    }
+
+    const permissions = new Set(Array.isArray(req.user.permissions) ? req.user.permissions : []);
+    const ok = Array.isArray(requiredPermissions) && requiredPermissions.some(p => permissions.has(p));
+
+    if (!ok) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para realizar esta acción',
+        requiredPermissions
+      });
+    }
+
+    next();
+  };
+};
+
 export default { 
   validateToken, 
   require2FA, 
   optionalToken, 
-  requireRole 
+  requireRole,
+  checkPermission,
+  checkAnyPermission
 };
