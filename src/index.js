@@ -19,10 +19,14 @@ import {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: [
-      "http://localhost:5173",
-      "https://ceaa-front-end.vercel.app"
-    ],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const ok =
+        origin === "http://localhost:5173" ||
+        origin === "https://ceaa-front-end.vercel.app" ||
+        (typeof origin === "string" && origin.startsWith("https://ceaa-front-end") && origin.endsWith(".vercel.app"));
+      return ok ? callback(null, true) : callback(new Error("No permitido por CORS"));
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },

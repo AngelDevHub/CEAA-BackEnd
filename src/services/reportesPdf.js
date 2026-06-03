@@ -1,9 +1,19 @@
 import PDFDocument from "pdfkit";
 
-function safeText(value) {
+function sanitizePdfText(value) {
   if (value === null || value === undefined) return "-";
   const s = String(value);
-  return s.length ? s : "-";
+  if (!s.length) return "-";
+  let out = "";
+  for (const ch of s) {
+    const code = ch.codePointAt(0);
+    out += code !== undefined && code <= 255 ? ch : "?";
+  }
+  return out;
+}
+
+function safeText(value) {
+  return sanitizePdfText(value);
 }
 
 function fmtNumber(value, digits = 2) {
@@ -22,7 +32,7 @@ function fmtDate(value) {
   try {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return "-";
-    return d.toLocaleString();
+    return sanitizePdfText(d.toLocaleString());
   } catch {
     return "-";
   }
@@ -247,52 +257,63 @@ function drawFooter(doc, meta) {
 }
 
 export function streamReportePdf({ res, data, type }) {
-  const doc = new PDFDocument({
-    size: "A4",
-    margin: 36,
-    info: {
-      Title: `CEAA - Reporte ${type}`,
-      Author: "CEAA"
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: "A4",
+        margin: 36,
+        info: {
+          Title: `CEAA - Reporte ${type}`,
+          Author: "CEAA"
+        }
+      });
+
+      const opts = {
+        marginTop: doc.page.margins.top,
+        marginBottom: doc.page.margins.bottom
+      };
+
+      doc.once("error", reject);
+      res.once("error", reject);
+      res.once("close", () => resolve());
+      res.once("finish", () => resolve());
+
+      doc.on("pageAdded", () => {
+        drawFooter(doc, {});
+      });
+
+      res.setHeader("Content-Type", "application/pdf");
+      const start = data?.range?.start ? new Date(data.range.start).toISOString().slice(0, 10) : "sin-fecha";
+      const end = data?.range?.end ? new Date(data.range.end).toISOString().slice(0, 10) : "sin-fecha";
+      const filename = `CEAA-reporte-${type}-${start}-${end}.pdf`;
+      res.setHeader("Content-Disposition", `attachment; filename=\"${sanitizePdfText(filename)}\"`);
+
+      doc.pipe(res);
+
+      const title = type === "semanal" ? "Reporte semanal" : "Reporte diario";
+      const subtitle =
+        data?.range?.start && data?.range?.end ? `${fmtDate(data.range.start)} -> ${fmtDate(data.range.end)}` : "-";
+
+      let y = drawHeader(doc, data, { title, subtitle, generatedAt: new Date().toISOString() });
+      y = ensurePageSpace(doc, y, 40, opts);
+
+      y = drawSectionTitle(doc, y, "Indicadores de sensores");
+      y = ensurePageSpace(doc, y, 120, opts);
+      y = drawSensorsTable(doc, y, data);
+
+      y = ensurePageSpace(doc, y, 120, opts);
+      y = drawSectionTitle(doc, y, "Riego y operacion");
+      y = ensurePageSpace(doc, y, 110, opts);
+      y = drawOperationBlock(doc, y, data);
+
+      y = ensurePageSpace(doc, y, 120, opts);
+      y = drawSectionTitle(doc, y, "Evidencias (bitacoras)");
+      y = drawEvidenceTable(doc, y, data, opts);
+
+      drawFooter(doc, {});
+      doc.end();
+    } catch (err) {
+      reject(err);
     }
   });
-
-  const opts = {
-    marginTop: doc.page.margins.top,
-    marginBottom: doc.page.margins.bottom
-  };
-
-  doc.on("pageAdded", () => {
-    drawFooter(doc, {});
-  });
-
-  res.setHeader("Content-Type", "application/pdf");
-  const start = data?.range?.start ? new Date(data.range.start).toISOString().slice(0, 10) : "sin-fecha";
-  const end = data?.range?.end ? new Date(data.range.end).toISOString().slice(0, 10) : "sin-fecha";
-  const filename = `CEAA-reporte-${type}-${start}-${end}.pdf`;
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-
-  doc.pipe(res);
-
-  const title = type === "semanal" ? "Reporte semanal" : "Reporte diario";
-  const subtitle =
-    data?.range?.start && data?.range?.end ? `${fmtDate(data.range.start)} -> ${fmtDate(data.range.end)}` : "-";
-
-  let y = drawHeader(doc, data, { title, subtitle, generatedAt: new Date().toISOString() });
-  y = ensurePageSpace(doc, y, 40, opts);
-
-  y = drawSectionTitle(doc, y, "Indicadores de sensores");
-  y = ensurePageSpace(doc, y, 120, opts);
-  y = drawSensorsTable(doc, y, data);
-
-  y = ensurePageSpace(doc, y, 120, opts);
-  y = drawSectionTitle(doc, y, "Riego y operación");
-  y = ensurePageSpace(doc, y, 110, opts);
-  y = drawOperationBlock(doc, y, data);
-
-  y = ensurePageSpace(doc, y, 120, opts);
-  y = drawSectionTitle(doc, y, "Evidencias (bitácoras)");
-  y = drawEvidenceTable(doc, y, data, opts);
-
-  drawFooter(doc, {});
-  doc.end();
 }
