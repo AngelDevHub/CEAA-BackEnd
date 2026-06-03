@@ -3,7 +3,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import routes from './routes/routes.js';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { sanitizeInput } from './middlewares/sanitizeMiddleware.js';
 import { COOKIE_SECRET, NODE_ENV } from './config.js';
 
@@ -90,13 +90,7 @@ const globalLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
-        const xff = req.headers['x-forwarded-for'];
-        if (typeof xff === 'string' && xff.length > 0) {
-            return xff.split(',')[0].trim();
-        }
-        return req.ip;
-    },
+    keyGenerator: (req) => ipKeyGenerator(req),
     skip: (req) => req.path === '/health'
 });
 
