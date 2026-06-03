@@ -23,13 +23,16 @@ const corsOptions = {
     origin: function (origin, callback) {
         // Permitir requests sin origin (como mobile apps, Postman, o server-to-server)
         if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.log('🚫 Origen bloqueado por CORS:', origin);
-            callback(new Error("No permitido por CORS"));
-        }
+        const ok =
+            allowedOrigins.includes(origin) ||
+            (typeof origin === "string" &&
+                origin.startsWith("https://ceaa-front-end") &&
+                origin.endsWith(".vercel.app"));
+
+        if (ok) return callback(null, true);
+
+        console.log('🚫 Origen bloqueado por CORS:', origin);
+        return callback(new Error("No permitido por CORS"));
     },
     credentials: true, // ✅ ESTO ES ESENCIAL para cookies
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

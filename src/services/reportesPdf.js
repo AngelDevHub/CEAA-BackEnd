@@ -1,14 +1,14 @@
 import PDFDocument from "pdfkit";
 
 function safeText(value) {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) return "-";
   const s = String(value);
-  return s.length ? s : "—";
+  return s.length ? s : "-";
 }
 
 function fmtNumber(value, digits = 2) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return n.toFixed(digits);
 }
 
@@ -21,10 +21,10 @@ function fmtHours(seconds) {
 function fmtDate(value) {
   try {
     const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "—";
+    if (Number.isNaN(d.getTime())) return "-";
     return d.toLocaleString();
   } catch {
-    return "—";
+    return "-";
   }
 }
 
@@ -118,11 +118,11 @@ function drawSensorsTable(doc, y, data) {
       ref: `Umbral riego: ${fmtNumber(thresholds.humedad_min_riego)}%`
     },
     {
-      variable: "Temperatura (°C)",
+      variable: "Temperatura (C)",
       min: fmtNumber(data?.sensores?.temperatura?.min),
       avg: fmtNumber(data?.sensores?.temperatura?.avg),
       max: fmtNumber(data?.sensores?.temperatura?.max),
-      ref: `Rango: ${fmtNumber(thresholds.temperatura_min)}–${fmtNumber(thresholds.temperatura_max)} °C`
+      ref: `Rango: ${fmtNumber(thresholds.temperatura_min)}-${fmtNumber(thresholds.temperatura_max)} C`
     },
     {
       variable: "Nitrógeno (mg/kg)",
@@ -176,7 +176,7 @@ function drawOperationBlock(doc, y, data) {
   const estadosText = Object.entries(estados)
     .map(([k, v]) => `${k}:${v}`)
     .join(" - ");
-  doc.font("Helvetica").fontSize(8).fillColor("#6b7280").text(`Estados: ${estadosText || "—"}`, x + leftW + 24, y + 66, { width: rightW - 24 });
+  doc.font("Helvetica").fontSize(8).fillColor("#6b7280").text(`Estados: ${estadosText || "-"}`, x + leftW + 24, y + 66, { width: rightW - 24 });
 
   return y + boxH + 14;
 }
@@ -222,8 +222,8 @@ function drawEvidenceTable(doc, y, data, opts) {
     doc.rect(x, y, width, rowH).fill(fill);
 
     const titulo = safeText(b.titulo);
-    const tareaId = b.id_tarea ? `#${b.id_tarea}` : "—";
-    const riego = b.riego_seg ? `${b.riego_seg}s ${fmtNumber(b.litros_estimados, 3)}L` : "—";
+    const tareaId = b.id_tarea ? `#${b.id_tarea}` : "-";
+    const riego = b.riego_seg ? `${b.riego_seg}s ${fmtNumber(b.litros_estimados, 3)}L` : "-";
     doc.fillColor("#111827");
     doc.text(titulo, x + 6, y + 5, { width: col.reg - 12, ellipsis: true });
     doc.text(safeText(b.sector), x + col.reg + 6, y + 5, { width: col.sector - 12, ellipsis: true });
@@ -275,7 +275,7 @@ export function streamReportePdf({ res, data, type }) {
 
   const title = type === "semanal" ? "Reporte semanal" : "Reporte diario";
   const subtitle =
-    data?.range?.start && data?.range?.end ? `${fmtDate(data.range.start)} -> ${fmtDate(data.range.end)}` : "—";
+    data?.range?.start && data?.range?.end ? `${fmtDate(data.range.start)} -> ${fmtDate(data.range.end)}` : "-";
 
   let y = drawHeader(doc, data, { title, subtitle, generatedAt: new Date().toISOString() });
   y = ensurePageSpace(doc, y, 40, opts);
