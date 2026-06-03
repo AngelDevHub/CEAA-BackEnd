@@ -249,10 +249,11 @@ function drawEvidenceTable(doc, y, data, opts) {
 function drawFooter(doc, meta) {
   const x = doc.page.margins.left;
   const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const y = doc.page.height - doc.page.margins.bottom + 10;
+  const y = doc.page.height - doc.page.margins.bottom - 16;
   doc.font("Helvetica").fontSize(8).fillColor("#6b7280");
   doc.text("Documento generado automáticamente por CEAA. Fuente de sensores: Firebase - Operación: MySQL", x, y, {
-    width
+    width,
+    lineBreak: false
   });
 }
 
