@@ -59,7 +59,7 @@ function drawHeader(doc, data, meta) {
     { label: "Riesgo 4h", value: safeText(data?.sensores?.riesgo_4h) },
     { label: "Estrés hídrico", value: fmtHours(data?.sensores?.seconds_under_humidity_threshold || 0) },
     { label: "Agua estimada", value: `${fmtNumber(data?.operacion?.riegos?.litros_estimados, 3)} L` },
-    { label: "Operación", value: `${data?.operacion?.tareas_creadas ?? 0} tareas · ${data?.operacion?.bitacoras ?? 0} bitácoras` }
+    { label: "Operación", value: `${data?.operacion?.tareas_creadas ?? 0} tareas - ${data?.operacion?.bitacoras ?? 0} bitácoras` }
   ];
 
   const gap = 10;
@@ -175,7 +175,7 @@ function drawOperationBlock(doc, y, data) {
   const estados = data?.operacion?.tareas_por_estado || {};
   const estadosText = Object.entries(estados)
     .map(([k, v]) => `${k}:${v}`)
-    .join(" · ");
+    .join(" - ");
   doc.font("Helvetica").fontSize(8).fillColor("#6b7280").text(`Estados: ${estadosText || "—"}`, x + leftW + 24, y + 66, { width: rightW - 24 });
 
   return y + boxH + 14;
@@ -241,7 +241,7 @@ function drawFooter(doc, meta) {
   const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const y = doc.page.height - doc.page.margins.bottom + 10;
   doc.font("Helvetica").fontSize(8).fillColor("#6b7280");
-  doc.text("Documento generado automáticamente por CEAA. Fuente de sensores: Firebase · Operación: MySQL", x, y, {
+  doc.text("Documento generado automáticamente por CEAA. Fuente de sensores: Firebase - Operación: MySQL", x, y, {
     width
   });
 }
@@ -275,7 +275,7 @@ export function streamReportePdf({ res, data, type }) {
 
   const title = type === "semanal" ? "Reporte semanal" : "Reporte diario";
   const subtitle =
-    data?.range?.start && data?.range?.end ? `${fmtDate(data.range.start)} → ${fmtDate(data.range.end)}` : "—";
+    data?.range?.start && data?.range?.end ? `${fmtDate(data.range.start)} -> ${fmtDate(data.range.end)}` : "—";
 
   let y = drawHeader(doc, data, { title, subtitle, generatedAt: new Date().toISOString() });
   y = ensurePageSpace(doc, y, 40, opts);
@@ -296,4 +296,3 @@ export function streamReportePdf({ res, data, type }) {
   drawFooter(doc, {});
   doc.end();
 }
-
