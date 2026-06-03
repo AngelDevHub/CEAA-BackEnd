@@ -11,3 +11,5 @@ router.get('/diario/pdf', validateToken, checkAnyPermission(['view:field', 'mana
 router.get('/semanal/pdf', validateToken, checkAnyPermission(['view:field', 'manage:users']), ReportesPdfController.semanal);
 
 export default router;
+
+
