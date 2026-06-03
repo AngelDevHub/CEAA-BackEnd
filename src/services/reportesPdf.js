@@ -278,8 +278,18 @@ export function streamReportePdf({ res, data, type }) {
       res.once("close", () => resolve());
       res.once("finish", () => resolve());
 
-      doc.on("pageAdded", () => {
+      const drawFooterSafe = () => {
+        const prevX = doc.x;
+        const prevY = doc.y;
+        doc.save();
         drawFooter(doc, {});
+        doc.restore();
+        doc.x = prevX;
+        doc.y = prevY;
+      };
+
+      doc.on("pageAdded", () => {
+        drawFooterSafe();
       });
 
       res.setHeader("Content-Type", "application/pdf");
@@ -310,7 +320,7 @@ export function streamReportePdf({ res, data, type }) {
       y = drawSectionTitle(doc, y, "Evidencias (bitacoras)");
       y = drawEvidenceTable(doc, y, data, opts);
 
-      drawFooter(doc, {});
+      drawFooterSafe();
       doc.end();
     } catch (err) {
       reject(err);
