@@ -1,13 +1,13 @@
 import express from 'express';
 import inicioSesionController from '../../controllers/inicioSesion.controller.js';
 import { validateToken } from '../../middlewares/validateToken.js';
-import { validateLogin } from '../../middlewares/sanitizeMiddleware.js';
+import { validateLogin, validateRegister } from '../../middlewares/sanitizeMiddleware.js';
 
 const router = express.Router();
 
 router.post('/login', validateLogin, inicioSesionController.iniciarSesion);
 router.post('/logout', validateToken, inicioSesionController.cerrarSesion);
-router.post('/registro', inicioSesionController.registerUser);
+router.post('/registro', validateRegister, inicioSesionController.registerUser);
 router.get('/perfil', validateToken, inicioSesionController.getPerfil);
 router.put('/perfil', validateToken, inicioSesionController.updatePerfil);
 router.post('/refresh-token', inicioSesionController.refrescarToken);

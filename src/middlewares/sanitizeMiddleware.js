@@ -68,7 +68,7 @@ export const validateRegister = [
     .isEmail().withMessage('Debe ser un email válido')
     .normalizeEmail(),
   body('clave')
-    .isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres')
+    .isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('La contraseña debe contener al menos una mayúscula, una minúscula y un número'),
   (req, res, next) => {

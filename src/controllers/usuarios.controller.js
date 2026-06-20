@@ -3,7 +3,7 @@ import UsuariosModel from '../models/usuarios.model.js';
 
 class UsuariosController {
 
-  async getAll(req, res) {
+  async   getAll(req, res) {
     try {
       const users = await UsuariosModel.findAll();
       res.json({ 
