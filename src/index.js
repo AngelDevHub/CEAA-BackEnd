@@ -15,6 +15,11 @@ import {
   calcularIndiceCrecimiento,
 } from "./services/modeloPrediccion.js";
 
+const isDev = process.env.NODE_ENV === "development";
+const debugLog = (...args) => {
+  if (isDev) console.log(...args);
+};
+
 // 🧠 Crear servidor HTTP y modelo IA
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -152,10 +157,10 @@ async function procesarDato(data) {
 
 // 💬 Socket.io
 io.on("connection", socket => {
-  console.log(chalk.green(`Cliente conectado: ${socket.id}`));
+  debugLog(chalk.green(`Cliente conectado: ${socket.id}`));
 
   socket.on("disconnect", reason => {
-    console.log(chalk.red(`Cliente desconectado: ${socket.id}, razón: ${reason}`));
+    debugLog(chalk.red(`Cliente desconectado: ${socket.id}, razón: ${reason}`));
   });
 
   socket.on("error", err => {

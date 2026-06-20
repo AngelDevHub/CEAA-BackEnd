@@ -132,9 +132,6 @@ class InicioSesionController {
                 ...cookieOptions, 
                 maxAge: 7 * 24 * 3600 * 1000 // 7 días
             });
-
-            console.log('✅ Cookies establecidas correctamente para:', usuario.correo);
-
             return res.status(200).json({ 
                 success: true, 
                 message: 'Inicio de sesión exitoso.', 
@@ -237,9 +234,6 @@ class InicioSesionController {
                     message: 'Sesión inválida. Vuelva a iniciar sesión.'
                 });
             }
-
-            console.log('✅ Usuario encontrado para refresco:', usuario.correo);
-
             const roles = await UsuariosModel.getRolesByUserId(usuario.id_usuario);
             const permissions = await UsuariosModel.getPermissionsByUserId(usuario.id_usuario);
             const role = roles[0] || 'user';
@@ -326,9 +320,6 @@ class InicioSesionController {
 
             res.clearCookie('accessToken', clearCookieOptions);
             res.clearCookie('refreshToken', clearCookieOptions);
-
-
-            console.log('✅ Sesión cerrada correctamente para usuario:', userId);
 
             return res.status(200).json({ 
                 success: true, 
