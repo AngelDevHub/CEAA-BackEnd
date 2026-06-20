@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import UsuariosModel from '../models/usuarios.model.js'; 
 
+const PASSWORD_POLICY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+
 class UsuariosController {
 
   async   getAll(req, res) {
@@ -69,10 +71,17 @@ class UsuariosController {
         });
       }
 
-      if (clave.length < 6) {
+      if (clave.length < 8) {
         return res.status(400).json({
           success: false,
-          message: 'La contraseña debe tener al menos 6 caracteres'
+          message: 'La contraseña debe tener al menos 8 caracteres'
+        });
+      }
+
+      if (!PASSWORD_POLICY_REGEX.test(clave)) {
+        return res.status(400).json({
+          success: false,
+          message: 'La contraseña debe contener al menos una mayúscula, una minúscula y un número'
         });
       }
 

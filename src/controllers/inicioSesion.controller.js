@@ -4,6 +4,8 @@ import { createAccessToken, createRefreshToken, verifyRefreshToken } from '../li
 import redisClient from '../libs/redis.js';
 import path from 'path';
 
+const PASSWORD_POLICY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+
 class InicioSesionController {
 
     incrementCounter = async (key, ttlMs) => {
@@ -162,10 +164,10 @@ class InicioSesionController {
             }
 
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(correo) || clave.length < 8) {
+            if (!emailRegex.test(correo) || clave.length < 8 || !PASSWORD_POLICY_REGEX.test(clave)) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Formato de correo inválido o contraseña menor a 8 caracteres.'
+                    message: 'Formato de correo inválido o contraseña insegura. Usa al menos 8 caracteres, una mayúscula, una minúscula y un número.'
                 });
             }
 
@@ -199,26 +201,17 @@ class InicioSesionController {
 
     refrescarToken = async (req, res) => {
         try {
-            console.log('🔹 Intento de refrescar token');
-            console.log('🍪 Cookies recibidas:', req.cookies);
-            console.log('🔐 Cookies firmadas recibidas:', req.signedCookies);
-            console.log('🌐 Origen de la request:', req.headers.origin);
-
             const refreshTokenCookie = req.signedCookies.refreshToken;
 
             if (!refreshTokenCookie) {
                 console.warn('⚠️ No se recibió cookie de refresh token firmada');
-                console.log('🔍 Revisando cookies normales:', req.cookies?.refreshToken);
                 return res.status(401).json({
                     success: false,
                     message: 'Token de refresco requerido.'
                 });
             }
 
-            console.log('✅ Refresh token recibido correctamente');
-
             const decoded = verifyRefreshToken(refreshTokenCookie);
-            console.log('🔓 Refresh token decodificado:', decoded);
 
             const userId = decoded.id_usuario;
             const usuario = await UsuariosModel.findByRefreshToken(userId, refreshTokenCookie);
@@ -261,7 +254,6 @@ class InicioSesionController {
             };
 
             const newAccessToken = createAccessToken(tokenPayload);
-            console.log('🔄 Nuevo access token generado');
 
             // 🔥 COOKIE OPTIONS ACTUALIZADAS - MISMAS QUE EN LOGIN
             const cookieOptions = {
@@ -275,7 +267,6 @@ class InicioSesionController {
             };
 
             res.cookie('accessToken', newAccessToken, cookieOptions);
-            console.log('✅ Cookie de accessToken enviada al cliente');
 
             return res.status(200).json({
                 success: true,

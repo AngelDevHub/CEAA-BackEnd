@@ -1,6 +1,8 @@
 import sanitizeHtml from 'sanitize-html';
 import { body, validationResult } from 'express-validator';
 
+const PASSWORD_POLICY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+
 export const sanitizeInput = (req, res, next) => {
 
   if (req.body) {
@@ -69,7 +71,7 @@ export const validateRegister = [
     .normalizeEmail(),
   body('clave')
     .isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .matches(PASSWORD_POLICY_REGEX)
     .withMessage('La contraseña debe contener al menos una mayúscula, una minúscula y un número'),
   (req, res, next) => {
     const errors = validationResult(req);
@@ -96,11 +98,11 @@ export const validateUpdateProfile = [
     .normalizeEmail(),
   body('clave_actual')
     .optional()
-    .isLength({ min: 6 }).withMessage('La contraseña actual debe tener al menos 6 caracteres'),
+    .isLength({ min: 8 }).withMessage('La contraseña actual debe tener al menos 8 caracteres'),
   body('nueva_clave')
     .optional()
-    .isLength({ min: 6 }).withMessage('La nueva contraseña debe tener al menos 6 caracteres')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .isLength({ min: 8 }).withMessage('La nueva contraseña debe tener al menos 8 caracteres')
+    .matches(PASSWORD_POLICY_REGEX)
     .withMessage('La nueva contraseña debe contener al menos una mayúscula, una minúscula y un número'),
   (req, res, next) => {
     const errors = validationResult(req);
