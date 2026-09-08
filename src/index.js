@@ -151,8 +151,15 @@ async function procesarDato(data) {
       currentCropConfig
     );
 
-    const resultado = { ...normalized, indiceCrecimiento, fecha: new Date().toISOString() };
+    const humidityThreshold = await getHumidityThreshold();
+    const resultado = { 
+      ...normalized, 
+      indiceCrecimiento, 
+      humedadUmbral: humidityThreshold,
+      fecha: new Date().toISOString() 
+    };
     io.emit("nuevosDatos", { actual: resultado, predicciones });
+
 
     await maybeCreatePreventiveIrrigationTask({ actual: resultado, predicciones });
   } catch (error) {
