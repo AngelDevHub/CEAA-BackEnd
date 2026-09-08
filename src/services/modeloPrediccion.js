@@ -93,20 +93,26 @@ export async function generarPredicciones(modelo, ultimoDato) {
 }
 
 
-export function calcularIndiceCrecimiento(temp, humedad, nitrogeno) {
-  // Valores ideales para rábanos
-  const idealTemp = 20;
-  const idealHum = 65;
-  const idealN = 2;
+export function calcularIndiceCrecimiento(temp, humedad, nitrogeno, cropConfig = null) {
+  // Valores por defecto (Rábano) o dinámicos según el cultivo configurado en Firebase /configuracion
+  const minHum = cropConfig?.humedadMinima !== undefined ? Number(cropConfig.humedadMinima) : 45;
+  const maxTemp = cropConfig?.tempMaxima !== undefined ? Number(cropConfig.tempMaxima) : 35;
+  const maxN = cropConfig?.nitrogenoMax !== undefined ? Number(cropConfig.nitrogenoMax) : 20;
 
-  // Normalización: desviación del valor ideal
-  const tempScore = Math.max(0, 100 - Math.abs(temp - idealTemp) * 5);
-  const humScore = Math.max(0, 100 - Math.abs(humedad - idealHum));
-  const nScore = Math.max(0, 100 - Math.abs(nitrogeno - idealN) * 10);
+  // Calculamos valores ideales óptimos en función de la variedad de cultivo
+  const idealTemp = Math.max(15, maxTemp - 10);
+  const idealHum = Math.min(90, minHum + 15);
+  const idealN = Math.max(1, maxN / 2);
+
+  // Normalización: evaluación del estado frente a las necesidades del cultivo seleccionado
+  const tempScore = Math.max(0, 100 - Math.abs(temp - idealTemp) * 4);
+  const humScore = Math.max(0, 100 - Math.abs(humedad - idealHum) * 2);
+  const nScore = Math.max(0, 100 - Math.abs(nitrogeno - idealN) * 5);
 
   // Promedio ponderado
-  const indice = (tempScore * 0.4 + humScore * 0.3 + nScore * 0.3) / 100;
+  const indice = (tempScore * 0.4 + humScore * 0.35 + nScore * 0.25) / 100;
 
   // Devuelve un valor entre 0 y 1
   return Number(indice.toFixed(2));
 }
+

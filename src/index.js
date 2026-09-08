@@ -40,7 +40,15 @@ const io = new Server(server, {
 
 let modelo = crearModelo();
 let historial = [];
+let currentCropConfig = null;
 const sensoresRef = db.ref("sensores");
+const configRef = db.ref("configuracion");
+
+// Escuchar cambios en la configuración activa del cultivo en Firebase
+configRef.on("value", (snapshot) => {
+  currentCropConfig = snapshot.val();
+  debugLog("🌱 Configuración activa de cultivo recibida:", currentCropConfig);
+});
 
 function toNumber(value) {
   const n = Number(value);
@@ -54,6 +62,10 @@ async function resolveDefaultUsers() {
 }
 
 async function getHumidityThreshold() {
+  if (currentCropConfig?.humedadMinima !== undefined) {
+    const hCrop = Number(currentCropConfig.humedadMinima);
+    if (Number.isFinite(hCrop)) return hCrop;
+  }
   const t = await ConfigModel.get("alertas.thresholds");
   const v = t?.value && typeof t.value === "object" ? t.value : {};
   const h = Number(v.humedad_min_riego);
@@ -135,7 +147,8 @@ async function procesarDato(data) {
     const indiceCrecimiento = calcularIndiceCrecimiento(
       normalized.temperatura,
       normalized.humedad,
-      normalized.nitrogeno
+      normalized.nitrogeno,
+      currentCropConfig
     );
 
     const resultado = { ...normalized, indiceCrecimiento, fecha: new Date().toISOString() };
