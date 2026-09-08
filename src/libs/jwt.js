@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
+import { JWT_SECRET, JWT_REFRESH_SECRET } from '../config.js';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 export const createAccessToken = (payload) => {
     return jwt.sign(payload, JWT_SECRET, {

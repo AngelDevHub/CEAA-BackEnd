@@ -200,8 +200,7 @@ app.use((err, req, res, next) => {
         console.log('🚫 Error CORS:', req.headers.origin);
         return res.status(403).json({
             success: false,
-            message: 'Origen no permitido',
-            allowedOrigins: allowedOrigins
+            message: 'Origen no permitido'
         });
     }
     

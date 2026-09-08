@@ -8,6 +8,10 @@ redisClient.on('error', (err) => console.error('Redis Client Error', err));
 redisClient.on('connect', () => console.log('Redis conectado correctamente'));
 redisClient.on('ready', () => console.log('Redis listo para usar'));
 
-await redisClient.connect();
+try {
+    await redisClient.connect();
+} catch (err) {
+    console.error('💥 Fallo crítico: No se pudo conectar a Redis al inicio', err);
+}
 
 export default redisClient;
